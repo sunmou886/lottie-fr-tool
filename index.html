@@ -36,20 +36,32 @@
   .player{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0b0f16}
   .player-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd)}
 
-/* ✅ 棋盘格背景：#fff / #eee（和你参考图一致） */
-.frame{
-  height:280px;
-  display:flex;align-items:center;justify-content:center;
+/* 柔和棋盘格：以白色为底，叠加低透明灰格子 */
+.player .frame {
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 关键：白色打底，避免透出深色卡片背景 */
+  background-color: #fff;
+
+  /* 两层低透明灰色棋盘格 */
+  --checker-a: rgba(0, 0, 0, 0.06); /* 深一点的小格 */
+  --checker-b: rgba(0, 0, 0, 0.03); /* 浅一点的小格 */
+
   background-image:
-    linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee),
-    linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%, #fff);
-  background-size:16px 16px;
-  background-position:0 0, 8px 8px;
+    linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%, var(--checker-a)),
+    linear-gradient(45deg, var(--checker-b) 25%, transparent 25%, transparent 75%, var(--checker-b) 75%, var(--checker-b));
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
 }
-.stage{
-  width:100%;
-  height:100%;
-  background:transparent; /* 强制透明 */
+
+/* 预览舞台保持透明即可 */
+.stage {
+  width: 100%;
+  height: 100%;
+  background: transparent;
 }
 
 }
