@@ -162,16 +162,41 @@
   function scaleAllTimings(root,f){scaleAllKeyframeTs(root,f);if(typeof root.ip==='number')root.ip*=f;if(typeof root.op==='number')root.op*=f;scaleLayersDeep(root.layers,f);if(Array.isArray(root.assets)){for(const a of root.assets){if(Array.isArray(a.layers))scaleLayersDeep(a.layers,f);if(typeof a.ip==='number')a.ip*=f;if(typeof a.op==='number')a.op*=f;if(typeof a.st==='number')a.st*=f;}}scaleMarkers(root.markers,f);}
 
   // === 播放器 ===
-  function loadAnim(container, data){
-    container.innerHTML='';
-    // 确保容器透明（避免被外层样式覆盖）
-    container.style.background = 'transparent';
-    return lottie.loadAnimation({container, renderer:'svg', loop:true, autoplay:true, animationData:data});
-  }
-  function refreshPlayers(){
-    if(originalObj){ if(anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
-    if(processedObj){ if(anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
-  }
+  // 深拷贝函数
+function clone(o){ return (window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o))); }
+
+// 预览用：去掉 JSON 里的 bg 字段
+function sanitizeForPreview(src){
+  const o = clone(src);
+  if (o && typeof o.bg !== 'undefined') delete o.bg;
+  return o;
+}
+
+// 载入动画（强制透明背景）
+function loadAnim(container, data){
+  container.innerHTML = '';
+  container.style.background = 'transparent';
+  const anim = lottie.loadAnimation({
+    container,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    animationData: sanitizeForPreview(data)
+  });
+  anim.addEventListener('DOMLoaded', () => {
+    try {
+      const svg = anim.renderer?.svgElement;
+      if (svg) svg.style.background = 'transparent';
+    } catch(_) {}
+  });
+  return anim;
+}
+
+// 刷新改前/改后预览
+function refreshPlayers(){
+  if (originalObj) { if (anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
+  if (processedObj){ if (anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
+}
 
   // === 事件 ===
   fileInput.addEventListener('change', async ()=>{
