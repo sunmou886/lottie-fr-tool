@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lottie 帧率修改与预览工具（JSON 预览 + 动画播放）</title>
+<style>
+  :root { --bg:#0f1115; --fg:#e8eaf0; --muted:#9aa0a6; --card:#171a21; --acc:#5aa9ff; --ok:#33d17a; --warn:#ffb86b; --err:#ff6b6b; --code:#0b0e14; --bd:#222733;}
+  html,body{background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Noto Sans SC,Helvetica,Arial;}
+  .wrap{max-width:1200px;margin:24px auto;padding:0 16px;}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+  h1{font-size:20px;margin:8px 0 16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .col{flex:1 1 260px}
+  input[type="number"],input[type="text"],input[type="color"]{width:180px;padding:8px 10px;border-radius:8px;border:1px solid #2a3140;background:#11151d;color:#e8eaf0}
+  input[type="file"]{accent-color:var(--acc)}
+  .btn{appearance:none;cursor:pointer;border:none;border-radius:10px;padding:10px 14px;background:var(--acc);color:#00162a;font-weight:700}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .help{color:var(--muted);font-size:13px}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin-top:10px}
+  .stat{background:#121620;border:1px solid var(--bd);border-radius:10px;padding:10px}
+  .stat b{display:block;font-size:12px;color:#cfd5e3}
+  .stat span{font-size:15px}
+  .radio-group{display:grid;gap:8px;margin:10px 0}
+  .radio{display:flex;gap:8px;align-items:flex-start}
+  .log{white-space:pre-wrap;background:#0c0f15;border:1px dashed #2a3140;border-radius:8px;padding:10px;margin-top:10px;color:#cbd5e1;max-height:220px;overflow:auto}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+  a{color:#8cc8ff}
+  .preview-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .panel{display:flex;flex-direction:column;gap:8px}
+  .panel h3{font-size:14px;margin:0;color:#cfd5e3; display:flex; align-items:center; justify-content:space-between;}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .codebox{position:relative;border:1px solid var(--bd);border-radius:10px;background:#0b0e14;padding:10px;max-height:320px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12.5px;line-height:1.55}
+  .copy{font-size:12px;cursor:pointer;padding:6px 8px;border-radius:8px;border:1px solid var(--bd);background:#0f141d;color:#cfe1ff}
+  mark{background:#333a52;color:#d4e0ff;border-radius:3px;padding:0 2px}
+  .k{color:#7aa2f7} .s{color:#9ece6a} .n{color:#e0af68} .b{color:#c0caf5} .p{color:#7dcfff}
+  .players{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .player{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0b0f16}
+  .player-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd)}
+  .player-title{font-size:14px;color:#cfd5e3}
+  .ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .ctrls .btn{padding:6px 10px;font-size:12px}
+  .frame{height:280px;display:flex;align-items:center;justify-content:center;background:#0d1118}
+  .stage{width:100%;height:100%}
+  label{user-select:none}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎞️ Lottie 帧率修改与预览工具（JSON 预览 + 动画播放）</h1>
+    <div class="card">
+      <div class="row">
+        <div class="col">
+          <label><b>上传 Lottie JSON</b></label><br/>
+          <input id="file" type="file" accept=".json,application/json" />
+          <div class="help">本页支持：JSON 左右栏预览 + 动画改前/改后并排播放预览。</div>
+        </div>
+        <div class="col">
+          <label><b>目标帧率 (fps)</b></label><br/>
+          <input id="targetFr" type="number" min="1" step="1" placeholder="例如 60" />
+          <div class="help">必须是 &gt; 0 的数字。</div>
+        </div>
+      </div>
+      <div class="radio-group">
+        <div class="radio"><input type="radio" name="mode" id="mode1" value="just-fr"><label for="mode1"><b>仅修改帧率</b></label></div>
+        <div class="radio"><input type="radio" name="mode" id="mode2" value="keep-duration"><label for="mode2"><b>修改帧率 + 保持整体时长</b></label></div>
+        <div class="radio"><input type="radio" name="mode" id="mode3" value="scale-keyframes" checked><label for="mode3"><b>修改帧率 + 缩放所有关键帧时间（推荐）</b></label></div>
+      </div>
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><b>当前帧率 fr</b><span id="curFr">-</span></div>
+        <div class="stat"><b>开始帧 ip</b><span id="curIp">-</span></div>
+        <div class="stat"><b>结束帧 op</b><span id="curOp">-</span></div>
+        <div class="stat"><b>当前时长 (秒)</b><span id="curSec">-</span></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="run" class="btn" disabled>⚙️ 修改并生成</button>
+      </div>
+      <div id="log" class="log" style="display:none"></div>
+      <div class="players">
+        <div class="player">
+          <div class="player-head">
+            <div class="player-title">改前预览（源 JSON）</div>
+            <div class="ctrls">
+              <button class="btn" id="p1Play">播放</button>
+              <button class="btn" id="p1Pause">暂停</button>
+              <button class="btn" id="p1Stop">停止</button>
+              <label>循环 <input type="checkbox" id="p1Loop" checked></label>
+              <label>速度 <input type="number" id="p1Speed" step="0.1" min="0.1" value="1.0" style="width:80px"></label>
+              <label>背景 <input type="color" id="p1Bg" value="#0d1118"></label>
+            </div>
+          </div>
+          <div class="frame" id="frame1"><div class="stage" id="stage1"></div></div>
+        </div>
+        <div class="player">
+          <div class="player-head">
+            <div class="player-title">改后预览（处理后 JSON）</div>
+            <div class="ctrls">
+              <button class="btn" id="p2Play">播放</button>
+              <button class="btn" id="p2Pause">暂停</button>
+              <button class="btn" id="p2Stop">停止</button>
+              <label>循环 <input type="checkbox" id="p2Loop" checked></label>
+              <label>速度 <input type="number" id="p2Speed" step="0.1" min="0.1" value="1.0" style="width:80px"></label>
+              <label>背景 <input type="color" id="p2Bg" value="#0d1118"></label>
+            </div>
+          </div>
+          <div class="frame" id="frame2"><div class="stage" id="stage2"></div></div>
+        </div>
+      </div>
+      <div class="preview-wrap">
+        <div class="panel">
+          <h3>📄 原始 JSON <span class="tools"><input id="searchLeft" type="text" placeholder="搜索关键字（原始）"/><button class="copy" id="copyLeft">复制</button></span></h3>
+          <pre class="codebox" id="codeLeft"></pre>
+        </div>
+        <div class="panel">
+          <h3>🛠️ 处理后 JSON（预览） <span class="tools"><input id="searchRight" type="text" placeholder="搜索关键字（处理后）"/><button class="copy" id="copyRight">复制</button></span></h3>
+          <pre class="codebox" id="codeRight"></pre>
+        </div>
+      </div>
+    </div>
+    <p class="help" style="margin-top:10px">提示：如果需要纯离线播放版本（内置 lottie-web），告诉我我会给你一体化大文件。</p>
+  </div>
+<script>
+(()=>{
+  const $=s=>document.querySelector(s);
+  const fileInput=$('#file'), runBtn=$('#run');
+  const targetFrInp=$('#targetFr'), statsEl=$('#stats'), curFrEl=$('#curFr'), curIpEl=$('#curIp'), curOpEl=$('#curOp'), curSecEl=$('#curSec');
+  const logEl=$('#log'), codeLeft=$('#codeLeft'), codeRight=$('#codeRight'), searchLeft=$('#searchLeft'), searchRight=$('#searchRight');
+  const stage1=$('#stage1'), stage2=$('#stage2'), frame1=$('#frame1'), frame2=$('#frame2');
+  const p1Play=$('#p1Play'), p1Pause=$('#p1Pause'), p1Stop=$('#p1Stop'), p1Loop=$('#p1Loop'), p1Speed=$('#p1Speed'), p1Bg=$('#p1Bg');
+  const p2Play=$('#p2Play'), p2Pause=$('#p2Pause'), p2Stop=$('#p2Stop'), p2Loop=$('#p2Loop'), p2Speed=$('#p2Speed'), p2Bg=$('#p2Bg');
+
+  let originalJsonText='', originalObj=null, processedObj=null, fileName='lottie.json';
+  let anim1=null, anim2=null;
+
+  function showLog(m,l=''){logEl.style.display='block';const p=l==='ok'?'✅ ':l==='warn'?'⚠️ ':l==='err'?'❌ ':'• ';logEl.textContent+=p+m+'\\n';logEl.scrollTop=logEl.scrollHeight;}
+  function resetLog(){logEl.textContent='';logEl.style.display='none';}
+  function updateStats(o){try{const fr=+o.fr,ip=+o.ip,op=+o.op;curFrEl.textContent=Number.isFinite(fr)?fr:'-';curIpEl.textContent=Number.isFinite(ip)?ip:'-';curOpEl.textContent=Number.isFinite(op)?op:'-';const s=(Number.isFinite(fr)&&Number.isFinite(ip)&&Number.isFinite(op)&&fr>0)?(op-ip)/fr:NaN;curSecEl.textContent=Number.isFinite(s)?s.toFixed(4):'-';statsEl.hidden=false;}catch{statsEl.hidden=true;}}
+  function validateReady(){runBtn.disabled=!(originalObj&&Number(targetFrInp.value)>0);}
+  function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;' }[c]));}
+  function highlightJson(text,q){const h=escapeHtml(text).replace(/(^|\\n)(\\s*)"(.*?)"(\\s*):/g,(m,a,sp,k)=>`${a}${sp}<span class="k">"${k}"</span>:`).replace(/"(?:\\\\.|[^"\\\\])*"/g,m=>`<span class="s">${m}</span>`).replace(/\\b-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b/g,m=>`<span class="n">${m}</span>`).replace(/\\b(true|false|null)\\b/g,m=>`<span class="b">${m}</span>`).replace(/[\\{\\}\\[\\]]/g,m=>`<span class="p">${m}</span>`);if(!q)return h;const qq=q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');return h.replace(new RegExp(`(${qq})`,'ig'),'<mark>$1</mark>');}
+  function renderLeft(t,q=''){codeLeft.innerHTML=highlightJson(t,q);}
+  function renderRight(o,q=''){if(!o){codeRight.textContent='';return;}const pretty=JSON.stringify(o,null,2);codeRight.innerHTML=highlightJson(pretty,q);}
+
+  function loadAnim(container, loop, speed, data){
+    if(!window.lottie){showLog('lottie-web 未加载，无法播放。','err');return null;}
+    container.innerHTML='';
+    const anim=lottie.loadAnimation({container, renderer:'svg', loop:loop.checked, autoplay:false, animationData:data});
+    anim.setSpeed(parseFloat(speed.value||'1')); return anim;
+  }
+  function refreshAnims(){ if(originalObj) anim1=loadAnim(stage1, p1Loop, p1Speed, originalObj); if(processedObj) anim2=loadAnim(stage2, p2Loop, p2Speed, processedObj); }
+  p1Play.addEventListener('click',()=>anim1&&anim1.play()); p1Pause.addEventListener('click',()=>anim1&&anim1.pause()); p1Stop.addEventListener('click',()=>anim1&&anim1.stop());
+  p2Play.addEventListener('click',()=>anim2&&anim2.play()); p2Pause.addEventListener('click',()=>anim2&&anim2.pause()); p2Stop.addEventListener('click',()=>anim2&&anim2.stop());
+  p1Loop.addEventListener('change',()=>{if(anim1)anim1.loop=p1Loop.checked;}); p2Loop.addEventListener('change',()=>{if(anim2)anim2.loop=p2Loop.checked;});
+  p1Speed.addEventListener('input',()=>{if(anim1)anim1.setSpeed(parseFloat(p1Speed.value||'1'));}); p2Speed.addEventListener('input',()=>{if(anim2)anim2.setSpeed(parseFloat(p2Speed.value||'1'));});
+  p1Bg.addEventListener('input',()=>frame1.style.background=p1Bg.value); p2Bg.addEventListener('input',()=>frame2.style.background=p2Bg.value);
+
+  fileInput.addEventListener('change', async()=>{
+    resetLog(); processedObj=null; renderRight(null);
+    try{
+      if(!fileInput.files||!fileInput.files[0])return;
+      const f=fileInput.files[0]; fileName=f.name||'lottie.json';
+      const buf=await f.arrayBuffer(); const txt=new TextDecoder('utf-8').decode(buf); originalJsonText=txt.trim();
+      try{ const parsed=JSON.parse(originalJsonText); originalObj=parsed; renderLeft(JSON.stringify(parsed,null,2)); }
+      catch(e){ showLog('文件不是有效的 JSON：'+e.message,'err'); originalObj=null; validateReady(); return; }
+      if(typeof originalObj!=='object'||!originalObj){ showLog('JSON 顶层不是对象。','err'); originalObj=null; validateReady(); return; }
+      if(typeof originalObj.fr==='undefined')showLog('未发现顶层 fr 字段。此文件可能不是标准 Lottie。','warn');
+      if(typeof originalObj.ip==='undefined'||typeof originalObj.op==='undefined')showLog('未发现顶层 ip/op 字段。','warn');
+      updateStats(originalObj); showLog('文件已载入：'+fileName,'ok'); validateReady(); refreshAnims();
+    }catch(e){ showLog('读取文件失败：'+(e?.message||e),'err'); }
+  });
+
+  targetFrInp.addEventListener('input', validateReady);
+  const deepClone=o=> (window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o)));
+  function scaleKeyframeTimesInObject(o,f){const st=[o];while(st.length){const c=st.pop();if(!c)continue;if(Array.isArray(c)){for(const v of c)st.push(v);continue;}if(typeof c==='object'){if(Object.prototype.hasOwnProperty.call(c,'t')&&typeof c.t==='number'){const isKF=('s'in c)||('e'in c)||('h'in c)||('i'in c)||('o'in c)||('hold'in c)||('k'in c);if(isKF)c.t=c.t*f;}if(Object.prototype.hasOwnProperty.call(c,'tm')&&typeof c.tm==='number'&&Object.prototype.hasOwnProperty.call(c,'cm')){c.tm=c.tm*f;}for(const k in c){if(!Object.prototype.hasOwnProperty.call(c,k))continue;const v=c[k];if(v&&typeof v==='object')st.push(v);}}}}
+  function scaleLayerIpOp(l,f){if(!Array.isArray(l))return;for(const ly of l){if(typeof ly?.ip==='number')ly.ip*=f;if(typeof ly?.op==='number')ly.op*=f;}}
+
+  runBtn.addEventListener('click', ()=>{
+    resetLog();
+    if(!originalObj){showLog('请先上传 JSON。','err');return;}
+    const newFr=Number(targetFrInp.value); if(!Number.isFinite(newFr)||newFr<=0){showLog('目标帧率无效。','err');return;}
+    const mode=document.querySelector('input[name="mode"]:checked')?.value||'scale-keyframes';
+    const obj=deepClone(originalObj);
+    const oldFr=Number(obj.fr), ip=Number(obj.ip), op=Number(obj.op);
+    const hadFr=Number.isFinite(oldFr)&&oldFr>0, hadRange=Number.isFinite(ip)&&Number.isFinite(op);
+    if(!hadFr)showLog('源 JSON 未提供有效 fr，按仅设置新帧率处理。','warn');
+    if(!hadRange)showLog('源 JSON 未提供有效 ip/op，部分保持时长与缩放将仅对能找到的关键帧/markers 生效。','warn');
+    let factor=1; if(hadFr)factor=newFr/oldFr;
+    try{
+      if(mode==='just-fr'){obj.fr=newFr;}
+      else if(mode==='keep-duration'){obj.fr=newFr;if(hadRange){const secs=(op-ip)/(hadFr?oldFr:newFr);obj.op=ip+secs*newFr;if(Array.isArray(obj.layers)){for(const ly of obj.layers){if(typeof ly.ip==='number'&&typeof ly.op==='number'){const lenSec=(ly.op-ly.ip)/(hadFr?oldFr:newFr);ly.op=ly.ip+lenSec*newFr;}}}}}
+      else {obj.fr=newFr;if(hadFr){scaleKeyframeTimesInObject(obj,factor);if(hadRange){obj.ip*=factor;obj.op*=factor;}if(Array.isArray(obj.layers))scaleLayerIpOp(obj.layers,factor);}else{showLog('未检测到旧帧率，无法精确缩放关键帧时间。已仅设置 fr。','warn');}}
+      processedObj=obj; renderRight(processedObj, searchRight.value); updateStats(obj); showLog('已生成处理结果，可在右侧预览并在下方使用改后播放器播放。','ok'); refreshAnims();
+    }catch(e){showLog('处理失败：'+(e?.message||e),'err');console.error(e);}
+  });
+
+  searchLeft.addEventListener('input', ()=>{try{const p=JSON.stringify(JSON.parse(originalJsonText||'{}'), null, 2);renderLeft(p, searchLeft.value.trim());}catch{}});
+  searchRight.addEventListener('input', ()=>{renderRight(processedObj, searchRight.value.trim());});
+  document.getElementById('copyLeft').addEventListener('click', async()=>{try{const p=JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2);await navigator.clipboard.writeText(p);document.getElementById('copyLeft').textContent='已复制';setTimeout(()=>document.getElementById('copyLeft').textContent='复制',1200);}catch{}});
+  document.getElementById('copyRight').addEventListener('click', async()=>{try{const p=processedObj?JSON.stringify(processedObj,null,2):'';await navigator.clipboard.writeText(p);document.getElementById('copyRight').textContent='已复制';setTimeout(()=>document.getElementById('copyRight').textContent='复制',1200);}catch{}});
+
+  renderLeft('{\n  "tips": "上传后这里显示源 JSON（已格式化）"\n}'); renderRight(null);
+})();</script>
+</body>
+</html>
