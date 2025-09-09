@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>👌🏻Lottie 帧率修改工具 (Eric Sun)</title>
+<title>Lottie 帧率修改与预览工具（修正版｜默认预览｜透明棋盘背景）</title>
 <style>
   :root{--bg:#0f1115;--fg:#e8eaf0;--muted:#9aa0a6;--card:#171a21;--acc:#5aa9ff;--ok:#33d17a;--warn:#ffb86b;--err:#ff6b6b;--code:#0b0e14;--bd:#222733}
   html,body{background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Noto Sans SC,Helvetica,Arial;margin:0}
@@ -30,17 +30,28 @@
   .copy{font-size:12px;cursor:pointer;padding:6px 8px;border-radius:8px;border:1px solid var(--bd);background:#0f141d;color:#cfe1ff}
   mark{background:#333a52;color:#d4e0ff;border-radius:3px;padding:0 2px}
   .k{color:#7aa2f7}.s{color:#9ece6a}.n{color:#e0af68}.b{color:#c0caf5}.p{color:#7dcfff}
+
+  /* 预览播放器 */
   .players{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   .player{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0b0f16}
   .player-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd)}
-  .frame{height:280px;display:flex;align-items:center;justify-content:center;background:#0d1118}
-  .stage{width:100%;height:100%}
+
+  /* ✅ 透明棋盘格背景（与参考图一致） */
+  .frame{
+    height:280px; display:flex; align-items:center; justify-content:center;
+    background-image:
+      linear-gradient(45deg, #e9ecef 25%, transparent 25%, transparent 75%, #e9ecef 75%, #e9ecef),
+      linear-gradient(45deg, #f7f8fa 25%, transparent 25%, transparent 75%, #f7f8fa 75%, #f7f8fa);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+  .stage{width:100%;height:100%; background:transparent}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <h1>👌🏻Lottie 帧率修改工具 (Eric Sun)</h1>
+  <h1>🎞️ Lottie 帧率修改与预览工具（修正版｜默认预览｜透明棋盘背景）</h1>
   <div class="card">
     <div class="row">
       <div class="col">
@@ -133,27 +144,84 @@
   function renderLeft(t,q=''){codeLeft.innerHTML=highlightJson(t,q);}
   function renderRight(o,q=''){if(!o){codeRight.textContent='';return;}codeRight.innerHTML=highlightJson(JSON.stringify(o,null,2),q);}
 
-  // 缩放时间轴函数
+  // === 缩放时间轴 ===
   const deepClone=o=>(window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o)));
   function scaleMarkers(ms,f){if(!Array.isArray(ms))return;for(const m of ms){if(typeof m.tm==='number')m.tm*=f;if(typeof m.dr==='number')m.dr*=f;}}
-  function scaleTimeRemap(tm,f){if(!tm)return;if(typeof tm.k==='number'){tm.k*=f;return;}if(Array.isArray(tm.k)){for(const kf of tm.k){if(kf.t)kf.t*=f;if(kf.s&&typeof kf.s[0]==='number')kf.s[0]*=f;if(kf.e&&typeof kf.e[0]==='number')kf.e[0]*=f;}}}
-  function scaleAllKeyframeTs(obj,f){const st=[obj];while(st.length){const cur=st.pop();if(Array.isArray(cur)){for(const v of cur)st.push(v);}else if(typeof cur==='object'){if('t'in cur&&typeof cur.t==='number')cur.t*=f;for(const k in cur){if(k==='tm')scaleTimeRemap(cur[k],f);else if(typeof cur[k]==='object')st.push(cur[k]);}}}}
-  function scaleLayerInOut(l,f){if(l.ip)l.ip*=f;if(l.op)l.op*=f;if(l.st)l.st*=f;if(l.tm)scaleTimeRemap(l.tm,f);}
-  function scaleLayersDeep(ls,f){if(!Array.isArray(ls))return;for(const ly of ls){scaleLayerInOut(ly,f);if(Array.isArray(ly.layers))scaleLayersDeep(ly.layers,f);}}  
-  function scaleAllTimings(root,f){scaleAllKeyframeTs(root,f);if(root.ip)root.ip*=f;if(root.op)root.op*=f;scaleLayersDeep(root.layers,f);if(Array.isArray(root.assets)){for(const a of root.assets){if(Array.isArray(a.layers))scaleLayersDeep(a.layers,f);if(a.ip)a.ip*=f;if(a.op)a.op*=f;if(a.st)a.st*=f;}}scaleMarkers(root.markers,f);}
+  function scaleTimeRemap(tm,f){if(!tm)return;if(typeof tm.k==='number'){tm.k*=f;return;}if(Array.isArray(tm.k)){for(const kf of tm.k){if(kf && typeof kf.t==='number')kf.t*=f;if(kf && kf.s!=null){if(typeof kf.s==='number')kf.s*=f;else if(Array.isArray(kf.s)&&typeof kf.s[0]==='number')kf.s[0]*=f;}if(kf && kf.e!=null){if(typeof kf.e==='number')kf.e*=f;else if(Array.isArray(kf.e)&&typeof kf.e[0]==='number')kf.e[0]*=f;}}}}
+  function scaleAllKeyframeTs(obj,f){const st=[obj];while(st.length){const cur=st.pop();if(!cur)continue;if(Array.isArray(cur)){for(const v of cur)st.push(v);continue;}if(typeof cur==='object'){if('t'in cur&&typeof cur.t==='number'){const looksKF=('s'in cur)||('e'in cur)||('h'in cur)||('i'in cur)||('o'in cur)||('hold'in cur)||('k'in cur);if(looksKF)cur.t*=f;}for(const k in cur){const v=cur[k];if(k==='tm'&&v&&typeof v==='object')scaleTimeRemap(v,f);else if(v&&typeof v==='object')st.push(v);}}}}
+  function scaleLayerInOut(l,f){if(typeof l?.ip==='number')l.ip*=f;if(typeof l?.op==='number')l.op*=f;if(typeof l?.st==='number')l.st*=f;if(l&&l.tm)scaleTimeRemap(l.tm,f);}
+  function scaleLayersDeep(ls,f){if(!Array.isArray(ls))return;for(const ly of ls){scaleLayerInOut(ly,f);if(Array.isArray(ly?.layers))scaleLayersDeep(ly.layers,f);}}
+  function scaleAllTimings(root,f){scaleAllKeyframeTs(root,f);if(typeof root.ip==='number')root.ip*=f;if(typeof root.op==='number')root.op*=f;scaleLayersDeep(root.layers,f);if(Array.isArray(root.assets)){for(const a of root.assets){if(Array.isArray(a.layers))scaleLayersDeep(a.layers,f);if(typeof a.ip==='number')a.ip*=f;if(typeof a.op==='number')a.op*=f;if(typeof a.st==='number')a.st*=f;}}scaleMarkers(root.markers,f);}
 
-  // 播放器
-  function loadAnim(container,data){container.innerHTML='';return lottie.loadAnimation({container,renderer:'svg',loop:true,autoplay:true,animationData:data});}
-  function refreshPlayers(){if(originalObj){if(anim1)anim1.destroy();anim1=loadAnim(stage1,originalObj);}if(processedObj){if(anim2)anim2.destroy();anim2=loadAnim(stage2,processedObj);}}
+  // === 播放器 ===
+  function loadAnim(container, data){
+    container.innerHTML='';
+    // 确保容器透明（避免被外层样式覆盖）
+    container.style.background = 'transparent';
+    return lottie.loadAnimation({container, renderer:'svg', loop:true, autoplay:true, animationData:data});
+  }
+  function refreshPlayers(){
+    if(originalObj){ if(anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
+    if(processedObj){ if(anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
+  }
 
-  // 事件
-  fileInput.addEventListener('change',async()=>{resetLog();try{const f=fileInput.files[0];fileName=f.name;originalJsonText=await f.text();originalObj=JSON.parse(originalJsonText);renderLeft(JSON.stringify(originalObj,null,2));updateStats(originalObj);showLog('文件已载入:'+fileName,'ok');validateReady();refreshPlayers();}catch(e){showLog('读取失败:'+e,'err');}});
-  targetFrInp.addEventListener('input',validateReady);
+  // === 事件 ===
+  fileInput.addEventListener('change', async ()=>{
+    resetLog();
+    try{
+      const f=fileInput.files[0]; if(!f) return;
+      fileName=f.name;
+      originalJsonText=await f.text();
+      originalObj=JSON.parse(originalJsonText);
+      renderLeft(JSON.stringify(originalObj,null,2));
+      updateStats(originalObj);
+      showLog('文件已载入：'+fileName,'ok');
+      validateReady();
+      refreshPlayers();
+    }catch(e){ showLog('读取失败：'+(e?.message||e),'err'); }
+  });
+  targetFrInp.addEventListener('input', validateReady);
 
-  runBtn.addEventListener('click',()=>{resetLog();if(!originalObj){showLog('请先上传','err');return;}const newFr=+targetFrInp.value;const mode=document.querySelector('input[name="mode"]:checked').value;const obj=deepClone(originalObj);const oldFr=+obj.fr;const f=oldFr?newFr/oldFr:1;try{if(mode==='just-fr'){obj.fr=newFr;}else if(mode==='keep-duration'){obj.fr=newFr;if(obj.op&&obj.ip)obj.op=obj.ip+(obj.op-obj.ip)/oldFr*newFr;}else{obj.fr=newFr;if(oldFr)scaleAllTimings(obj,f);}}catch(e){showLog('处理失败:'+e,'err');}processedObj=obj;renderRight(obj,searchRight.value);updateStats(obj);refreshPlayers();const outName=fileName.replace(/\\.json$/i,'')+`-fr${newFr}.json`;const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=outName;a.click();URL.revokeObjectURL(url);showLog('处理完成: '+outName,'ok');});
+  runBtn.addEventListener('click', ()=>{
+    resetLog();
+    if(!originalObj){ showLog('请先上传','err'); return; }
+    const newFr=+targetFrInp.value;
+    const mode=document.querySelector('input[name="mode"]:checked').value;
+    const obj=deepClone(originalObj);
+    const oldFr=+obj.fr; const hadFr=Number.isFinite(oldFr)&&oldFr>0;
+    const ip=+obj.ip, op=+obj.op; const hadRange=Number.isFinite(ip)&&Number.isFinite(op);
+    const factor = hadFr ? newFr/oldFr : 1;
+    try{
+      if(mode==='just-fr'){
+        obj.fr=newFr;
+      }else if(mode==='keep-duration'){
+        obj.fr=newFr;
+        if(hadRange){ const secs=(op-ip)/(hadFr?oldFr:newFr); obj.op = ip + secs*newFr; }
+        const rf = (hadFr?newFr/oldFr:1);
+        if(Array.isArray(obj.layers)){ for(const ly of obj.layers){ if(typeof ly.ip==='number') ly.ip*=rf; if(typeof ly.op==='number') ly.op*=rf; if(typeof ly.st==='number') ly.st*=rf; } }
+        if(Array.isArray(obj.assets)){ for(const a of obj.assets){ if(Array.isArray(a.layers)){ for(const ly of a.layers){ if(typeof ly.ip==='number') ly.ip*=rf; if(typeof ly.op==='number') ly.op*=rf; if(typeof ly.st==='number') ly.st*=rf; } } } }
+        if(Array.isArray(obj.markers)){ for(const m of obj.markers){ if(typeof m.tm==='number') m.tm*=rf; if(typeof m.dr==='number') m.dr*=rf; } }
+      }else{ // scale-keyframes
+        obj.fr=newFr;
+        if(hadFr){ scaleAllTimings(obj, factor); }
+        else { showLog('未检测到旧帧率，仅设置 fr。','warn'); }
+      }
 
-  searchLeft.addEventListener('input',()=>{try{renderLeft(JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2),searchLeft.value);}catch{}});
-  searchRight.addEventListener('input',()=>renderRight(processedObj,searchRight.value));
+      processedObj=obj;
+      renderRight(obj, searchRight.value);
+      updateStats(obj);
+      refreshPlayers();
+
+      // 下载
+      const outName=(fileName||'lottie.json').replace(/\.json$/i,'')+`-fr${newFr}${mode==='scale-keyframes'?'-scaled':mode==='keep-duration'?'-keepdur':''}.json`;
+      const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=outName; a.click(); URL.revokeObjectURL(url);
+      showLog('处理完成：'+outName,'ok');
+    }catch(e){ showLog('处理失败：'+(e?.message||e),'err'); }
+  });
+
+  searchLeft.addEventListener('input', ()=>{ try{ renderLeft(JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2), searchLeft.value); }catch{} });
+  searchRight.addEventListener('input', ()=> renderRight(processedObj, searchRight.value) );
 })();
 </script>
 </body>
