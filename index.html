@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Lottie 帧率修改工具 (Eric Sun) </title>
+<title>👌🏻Lottie 帧率修改工具 (Eric Sun)</title>
 <style>
   :root{--bg:#0f1115;--fg:#e8eaf0;--muted:#9aa0a6;--card:#171a21;--acc:#5aa9ff;--ok:#33d17a;--warn:#ffb86b;--err:#ff6b6b;--code:#0b0e14;--bd:#222733}
   html,body{background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Noto Sans SC,Helvetica,Arial;margin:0}
@@ -12,7 +12,7 @@
   h1{font-size:20px;margin:8px 0 16px}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   .col{flex:1 1 260px}
-  input[type="number"],input[type="text"],input[type="color"]{width:180px;padding:8px 10px;border-radius:8px;border:1px solid #2a3140;background:#11151d;color:var(--fg)}
+  input[type="number"],input[type="text"]{width:180px;padding:8px 10px;border-radius:8px;border:1px solid #2a3140;background:#11151d;color:var(--fg)}
   input[type="file"]{accent-color:var(--acc)}
   .btn{appearance:none;cursor:pointer;border:none;border-radius:10px;padding:10px 14px;background:var(--acc);color:#00162a;font-weight:700}
   .btn[disabled]{opacity:.5;cursor:not-allowed}
@@ -30,17 +30,17 @@
   .copy{font-size:12px;cursor:pointer;padding:6px 8px;border-radius:8px;border:1px solid var(--bd);background:#0f141d;color:#cfe1ff}
   mark{background:#333a52;color:#d4e0ff;border-radius:3px;padding:0 2px}
   .k{color:#7aa2f7}.s{color:#9ece6a}.n{color:#e0af68}.b{color:#c0caf5}.p{color:#7dcfff}
-  /* players */
-  .players{display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .players{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   .player{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0b0f16}
   .player-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd)}
   .frame{height:280px;display:flex;align-items:center;justify-content:center;background:#0d1118}
   .stage{width:100%;height:100%}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <h1>👌🏻Lottie 帧率修改工具 (Eric Sun) </h1>
+  <h1>👌🏻Lottie 帧率修改工具 (Eric Sun)</h1>
   <div class="card">
     <div class="row">
       <div class="col">
@@ -51,17 +51,12 @@
       <div class="col">
         <label><b>目标帧率 (fps)</b></label><br/>
         <input id="targetFr" type="number" min="1" step="1" placeholder="例如 60" />
-        <div class="help">推荐使用“缩放所有关键帧时间”。</div>
-      </div>
-      <div class="col">
-        <label><input type="checkbox" id="enablePreview" /> 启用动画预览</label>
-        <div class="help">勾选后会加载 lottie-web CDN；不勾选也能生成并下载。</div>
       </div>
     </div>
 
     <div class="row" style="margin-top:8px">
       <label><input type="radio" name="mode" value="just-fr"> 仅修改帧率</label>
-      <label><input type="radio" name="mode" value="keep-duration"> 保持整体时长（不缩放关键帧）</label>
+      <label><input type="radio" name="mode" value="keep-duration"> 保持整体时长</label>
       <label><input type="radio" name="mode" value="scale-keyframes" checked> 缩放所有关键帧时间（推荐）</label>
     </div>
 
@@ -78,7 +73,7 @@
 
     <div id="log" class="log" style="display:none"></div>
 
-    <div class="players" id="players">
+    <div class="players">
       <div class="player">
         <div class="player-head">
           <div>改前预览</div>
@@ -86,8 +81,6 @@
             <button class="btn" id="p1Play">播</button>
             <button class="btn" id="p1Pause">停</button>
             <button class="btn" id="p1Stop">复位</button>
-            <label>循环 <input type="checkbox" id="p1Loop" checked></label>
-            <label>速度 <input type="number" id="p1Speed" step="0.1" min="0.1" value="1.0" style="width:80px"></label>
           </div>
         </div>
         <div class="frame"><div class="stage" id="stage1"></div></div>
@@ -99,8 +92,6 @@
             <button class="btn" id="p2Play">播</button>
             <button class="btn" id="p2Pause">停</button>
             <button class="btn" id="p2Stop">复位</button>
-            <label>循环 <input type="checkbox" id="p2Loop" checked></label>
-            <label>速度 <input type="number" id="p2Speed" step="0.1" min="0.1" value="1.0" style="width:80px"></label>
           </div>
         </div>
         <div class="frame"><div class="stage" id="stage2"></div></div>
@@ -123,238 +114,46 @@
 <script>
 (()=> {
   const $ = s => document.querySelector(s);
-  const fileInput = $('#file'), runBtn = $('#run'), targetFrInp = $('#targetFr');
-  const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
-  const logEl = $('#log'), codeLeft = $('#codeLeft'), codeRight = $('#codeRight');
-  const searchLeft = $('#searchLeft'), searchRight = $('#searchRight');
-  const enablePreview = $('#enablePreview');
-  const players = $('#players');
-
-  // player controls
-  const p1Play=$('#p1Play'), p1Pause=$('#p1Pause'), p1Stop=$('#p1Stop'), p1Loop=$('#p1Loop'), p1Speed=$('#p1Speed');
-  const p2Play=$('#p2Play'), p2Pause=$('#p2Pause'), p2Stop=$('#p2Stop'), p2Loop=$('#p2Loop'), p2Speed=$('#p2Speed');
-  const stage1 = $('#stage1'), stage2 = $('#stage2');
-  let anim1=null, anim2=null;
-
+  const fileInput=$('#file'), runBtn=$('#run'), targetFrInp=$('#targetFr');
+  const statsEl=$('#stats'),curFrEl=$('#curFr'),curIpEl=$('#curIp'),curOpEl=$('#curOp'),curSecEl=$('#curSec');
+  const logEl=$('#log'), codeLeft=$('#codeLeft'), codeRight=$('#codeRight');
+  const searchLeft=$('#searchLeft'), searchRight=$('#searchRight');
+  const stage1=$('#stage1'), stage2=$('#stage2');
+  const p1Play=$('#p1Play'), p1Pause=$('#p1Pause'), p1Stop=$('#p1Stop');
+  const p2Play=$('#p2Play'), p2Pause=$('#p2Pause'), p2Stop=$('#p2Stop');
+  let anim1=null,anim2=null;
   let originalJsonText='', originalObj=null, processedObj=null, fileName='lottie.json';
 
-  function showLog(msg, level=''){ logEl.style.display='block'; const p = level==='ok'?'✅ ':level==='warn'?'⚠️ ':level==='err'?'❌ ':'• '; logEl.textContent += p+msg+'\\n'; logEl.scrollTop = logEl.scrollHeight; }
-  function resetLog(){ logEl.textContent=''; logEl.style.display='none'; }
-  function updateStats(o){
-    try{
-      const fr=+o.fr, ip=+o.ip, op=+o.op;
-      curFrEl.textContent = Number.isFinite(fr)?fr:'-';
-      curIpEl.textContent = Number.isFinite(ip)?ip:'-';
-      curOpEl.textContent = Number.isFinite(op)?op:'-';
-      const sec = (Number.isFinite(fr)&&Number.isFinite(ip)&&Number.isFinite(op)&&fr>0)?(op-ip)/fr:NaN;
-      curSecEl.textContent = Number.isFinite(sec)?sec.toFixed(4):'-';
-      statsEl.hidden = false;
-    }catch{ statsEl.hidden = true; }
-  }
-  function validateReady(){ runBtn.disabled = !(originalObj && Number(targetFrInp.value)>0); }
+  function showLog(m,l=''){logEl.style.display='block';const p=l==='ok'?'✅ ':l==='warn'?'⚠️ ':l==='err'?'❌ ':'• ';logEl.textContent+=p+m+'\\n';logEl.scrollTop=logEl.scrollHeight;}
+  function resetLog(){logEl.textContent='';logEl.style.display='none';}
+  function updateStats(o){try{const fr=+o.fr,ip=+o.ip,op=+o.op;curFrEl.textContent=fr;curIpEl.textContent=ip;curOpEl.textContent=op;curSecEl.textContent=((op-ip)/fr).toFixed(3);statsEl.hidden=false;}catch{statsEl.hidden=true;}}
+  function validateReady(){runBtn.disabled=!(originalObj&&Number(targetFrInp.value)>0);}
   function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));}
-  function highlightJson(text,q){
-    const html = escapeHtml(text)
-      .replace(/(^|\\n)(\\s*)"(.*?)"(\\s*):/g,(m,a,sp,k)=>`${a}${sp}<span class="k">"${k}"</span>:`)
-      .replace(/"(?:\\\\.|[^"\\\\])*"/g,m=>`<span class="s">${m}</span>`)
-      .replace(/\\b-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b/g,m=>`<span class="n">${m}</span>`)
-      .replace(/\\b(true|false|null)\\b/g,m=>`<span class="b">${m}</span>`)
-      .replace(/[\\{\\}\\[\\]]/g,m=>`<span class="p">${m}</span>`);
-    if(!q) return html;
-    const qq = q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');
-    return html.replace(new RegExp(`(${qq})`,'ig'),'<mark>$1</mark>');
-  }
-  function renderLeft(text, q=''){ codeLeft.innerHTML = highlightJson(text, q); }
-  function renderRight(obj, q=''){ codeRight.innerHTML = obj ? highlightJson(JSON.stringify(obj, null, 2), q) : ''; }
+  function highlightJson(text,q){const h=escapeHtml(text).replace(/(^|\\n)(\\s*)"(.*?)"(\\s*):/g,(m,a,sp,k)=>`${a}${sp}<span class="k">"${k}"</span>:`).replace(/"(?:\\\\.|[^"\\\\])*"/g,m=>`<span class="s">${m}</span>`).replace(/\\b-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b/g,m=>`<span class="n">${m}</span>`).replace(/\\b(true|false|null)\\b/g,m=>`<span class="b">${m}</span>`).replace(/[\\{\\}\\[\\]]/g,m=>`<span class="p">${m}</span>`);if(!q)return h;const qq=q.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');return h.replace(new RegExp(`(${qq})`,'ig'),'<mark>$1</mark>');}
+  function renderLeft(t,q=''){codeLeft.innerHTML=highlightJson(t,q);}
+  function renderRight(o,q=''){if(!o){codeRight.textContent='';return;}codeRight.innerHTML=highlightJson(JSON.stringify(o,null,2),q);}
 
-  // === core helpers ===
-  const deepClone = o => (window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o)));
+  // 缩放时间轴函数
+  const deepClone=o=>(window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o)));
+  function scaleMarkers(ms,f){if(!Array.isArray(ms))return;for(const m of ms){if(typeof m.tm==='number')m.tm*=f;if(typeof m.dr==='number')m.dr*=f;}}
+  function scaleTimeRemap(tm,f){if(!tm)return;if(typeof tm.k==='number'){tm.k*=f;return;}if(Array.isArray(tm.k)){for(const kf of tm.k){if(kf.t)kf.t*=f;if(kf.s&&typeof kf.s[0]==='number')kf.s[0]*=f;if(kf.e&&typeof kf.e[0]==='number')kf.e[0]*=f;}}}
+  function scaleAllKeyframeTs(obj,f){const st=[obj];while(st.length){const cur=st.pop();if(Array.isArray(cur)){for(const v of cur)st.push(v);}else if(typeof cur==='object'){if('t'in cur&&typeof cur.t==='number')cur.t*=f;for(const k in cur){if(k==='tm')scaleTimeRemap(cur[k],f);else if(typeof cur[k]==='object')st.push(cur[k]);}}}}
+  function scaleLayerInOut(l,f){if(l.ip)l.ip*=f;if(l.op)l.op*=f;if(l.st)l.st*=f;if(l.tm)scaleTimeRemap(l.tm,f);}
+  function scaleLayersDeep(ls,f){if(!Array.isArray(ls))return;for(const ly of ls){scaleLayerInOut(ly,f);if(Array.isArray(ly.layers))scaleLayersDeep(ly.layers,f);}}  
+  function scaleAllTimings(root,f){scaleAllKeyframeTs(root,f);if(root.ip)root.ip*=f;if(root.op)root.op*=f;scaleLayersDeep(root.layers,f);if(Array.isArray(root.assets)){for(const a of root.assets){if(Array.isArray(a.layers))scaleLayersDeep(a.layers,f);if(a.ip)a.ip*=f;if(a.op)a.op*=f;if(a.st)a.st*=f;}}scaleMarkers(root.markers,f);}
 
-  function scaleMarkers(markers,f){ if(!Array.isArray(markers))return; for(const m of markers){ if(typeof m.tm==='number') m.tm*=f; if(typeof m.dr==='number') m.dr*=f; } }
-  function scaleTimeRemap(tm,f){
-    if(!tm) return;
-    if(typeof tm.k==='number'){ tm.k*=f; return; }
-    if(Array.isArray(tm.k)){
-      for(const kf of tm.k){
-        if(kf && typeof kf.t==='number') kf.t*=f;
-        if(kf && kf.s!=null){
-          if(typeof kf.s==='number') kf.s*=f;
-          else if(Array.isArray(kf.s) && typeof kf.s[0]==='number') kf.s[0]*=f;
-        }
-        if(kf && kf.e!=null){
-          if(typeof kf.e==='number') kf.e*=f;
-          else if(Array.isArray(kf.e) && typeof kf.e[0]==='number') kf.e[0]*=f;
-        }
-      }
-    }
-  }
-  function scaleAllKeyframeTs(obj,f){
-    const st=[obj];
-    while(st.length){
-      const cur=st.pop();
-      if(!cur) continue;
-      if(Array.isArray(cur)){ for(const v of cur) st.push(v); continue; }
-      if(typeof cur==='object'){
-        if(Object.prototype.hasOwnProperty.call(cur,'t') && typeof cur.t==='number'){
-          const isKF = ('s' in cur)||('e' in cur)||('h' in cur)||('i' in cur)||('o' in cur)||('hold' in cur)||('k' in cur);
-          if(isKF) cur.t = cur.t * f;
-        }
-        for(const k in cur){
-          const v = cur[k];
-          if(k==='tm' && v && typeof v==='object') scaleTimeRemap(v,f);
-          else if(v && typeof v==='object') st.push(v);
-        }
-      }
-    }
-  }
-  function scaleLayerInOut(layer,f){
-    if(typeof layer?.ip==='number') layer.ip*=f;
-    if(typeof layer?.op==='number') layer.op*=f;
-    if(typeof layer?.st==='number') layer.st*=f;
-    if(layer && layer.tm) scaleTimeRemap(layer.tm,f);
-  }
-  function scaleLayersDeep(layers,f){
-    if(!Array.isArray(layers)) return;
-    for(const ly of layers){ scaleLayerInOut(ly,f); if(Array.isArray(ly?.layers)) scaleLayersDeep(ly.layers,f); }
-  }
-  function scaleAllTimings(root,f){
-    scaleAllKeyframeTs(root,f);
-    if(typeof root.ip==='number') root.ip*=f;
-    if(typeof root.op==='number') root.op*=f;
-    scaleLayersDeep(root.layers,f);
-    if(Array.isArray(root.assets)){ for(const a of root.assets){ if(Array.isArray(a.layers)) scaleLayersDeep(a.layers,f); if(typeof a.ip==='number') a.ip*=f; if(typeof a.op==='number') a.op*=f; if(typeof a.st==='number') a.st*=f; } }
-    scaleMarkers(root.markers,f);
-  }
+  // 播放器
+  function loadAnim(container,data){container.innerHTML='';return lottie.loadAnimation({container,renderer:'svg',loop:true,autoplay:true,animationData:data});}
+  function refreshPlayers(){if(originalObj){if(anim1)anim1.destroy();anim1=loadAnim(stage1,originalObj);}if(processedObj){if(anim2)anim2.destroy();anim2=loadAnim(stage2,processedObj);}}
 
-  // === players ===
-  function ensureLottieLoaded(cb){
-    if(window.lottie) return cb();
-    const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js';
-    s.onload=cb; s.onerror=()=>showLog('lottie-web 加载失败（仅影响预览，不影响下载）。','warn');
-    document.head.appendChild(s);
-  }
-  function loadAnim(container, loop, speed, data){
-    if(!window.lottie) return null;
-    container.innerHTML='';
-    const a = lottie.loadAnimation({container, renderer:'svg', loop:loop.checked, autoplay:false, animationData:data});
-    a.setSpeed(parseFloat(speed.value||'1')); return a;
-  }
-  function refreshPlayers(){
-    if(!enablePreview.checked) return;
-    if(originalObj) { if(anim1) anim1.destroy(); anim1 = loadAnim(stage1, p1Loop, p1Speed, originalObj); }
-    if(processedObj){ if(anim2) anim2.destroy(); anim2 = loadAnim(stage2, p2Loop, p2Speed, processedObj); }
-  }
-  enablePreview.addEventListener('change', ()=>{
-    players.style.display = enablePreview.checked ? 'grid' : 'none';
-    if(enablePreview.checked){
-      ensureLottieLoaded(()=> refreshPlayers());
-    }else{
-      if(anim1){anim1.destroy(); anim1=null;}
-      if(anim2){anim2.destroy(); anim2=null;}
-    }
-  });
-  p1Play.onclick=()=>anim1&&anim1.play(); p1Pause.onclick=()=>anim1&&anim1.pause(); p1Stop.onclick=()=>anim1&&anim1.stop();
-  p2Play.onclick=()=>anim2&&anim2.play(); p2Pause.onclick=()=>anim2&&anim2.pause(); p2Stop.onclick=()=>anim2&&anim2.stop();
-  p1Loop?.addEventListener('change',()=>{ if(anim1) anim1.loop=p1Loop.checked; });
-  p2Loop?.addEventListener('change',()=>{ if(anim2) anim2.loop=p2Loop.checked; });
-  p1Speed?.addEventListener('input',()=>{ if(anim1) anim1.setSpeed(parseFloat(p1Speed.value||'1')); });
-  p2Speed?.addEventListener('input',()=>{ if(anim2) anim2.setSpeed(parseFloat(p2Speed.value||'1')); });
+  // 事件
+  fileInput.addEventListener('change',async()=>{resetLog();try{const f=fileInput.files[0];fileName=f.name;originalJsonText=await f.text();originalObj=JSON.parse(originalJsonText);renderLeft(JSON.stringify(originalObj,null,2));updateStats(originalObj);showLog('文件已载入:'+fileName,'ok');validateReady();refreshPlayers();}catch(e){showLog('读取失败:'+e,'err');}});
+  targetFrInp.addEventListener('input',validateReady);
 
-  // === IO ===
-  fileInput.addEventListener('change', async ()=>{
-    resetLog(); processedObj=null; renderRight(null);
-    try{
-      if(!fileInput.files || !fileInput.files[0]) return;
-      const f = fileInput.files[0]; fileName = f.name || 'lottie.json';
-      const txt = await f.text();
-      originalJsonText = txt.trim();
-      originalObj = JSON.parse(originalJsonText);
-      renderLeft(JSON.stringify(originalObj, null, 2), searchLeft.value);
-      updateStats(originalObj);
-      showLog('文件已载入：'+fileName, 'ok');
-      validateReady();
-      if(enablePreview.checked) ensureLottieLoaded(()=>{ refreshPlayers(); });
-    }catch(e){
-      showLog('读取/解析失败：'+(e?.message||e), 'err');
-      originalObj = null; validateReady();
-    }
-  });
-  targetFrInp.addEventListener('input', validateReady);
+  runBtn.addEventListener('click',()=>{resetLog();if(!originalObj){showLog('请先上传','err');return;}const newFr=+targetFrInp.value;const mode=document.querySelector('input[name="mode"]:checked').value;const obj=deepClone(originalObj);const oldFr=+obj.fr;const f=oldFr?newFr/oldFr:1;try{if(mode==='just-fr'){obj.fr=newFr;}else if(mode==='keep-duration'){obj.fr=newFr;if(obj.op&&obj.ip)obj.op=obj.ip+(obj.op-obj.ip)/oldFr*newFr;}else{obj.fr=newFr;if(oldFr)scaleAllTimings(obj,f);}}catch(e){showLog('处理失败:'+e,'err');}processedObj=obj;renderRight(obj,searchRight.value);updateStats(obj);refreshPlayers();const outName=fileName.replace(/\\.json$/i,'')+`-fr${newFr}.json`;const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=outName;a.click();URL.revokeObjectURL(url);showLog('处理完成: '+outName,'ok');});
 
-  // === run ===
-  function autoDownloadFile(name, content, mime='application/json'){
-    const blob = new Blob([content], {type: mime});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-  }
-
-  runBtn.addEventListener('click', ()=>{
-    resetLog();
-    if(!originalObj){ showLog('请先上传 JSON。','err'); return; }
-    const newFr = Number(targetFrInp.value);
-    if(!Number.isFinite(newFr) || newFr<=0){ showLog('目标帧率无效。','err'); return; }
-    const mode = document.querySelector('input[name="mode"]:checked')?.value || 'scale-keyframes';
-
-    const obj = deepClone(originalObj);
-    const oldFr = Number(obj.fr);
-    const hadFr = Number.isFinite(oldFr) && oldFr>0;
-    const ip = Number(obj.ip), op = Number(obj.op);
-    const hadRange = Number.isFinite(ip) && Number.isFinite(op);
-    const factor = hadFr ? (newFr/oldFr) : 1;
-
-    try{
-      if(mode === 'just-fr'){
-        obj.fr = newFr;
-
-      } else if(mode === 'keep-duration'){
-        obj.fr = newFr;
-        // 保持总秒数：重算 root op
-        if(hadRange){
-          const secs = (op - ip) / (hadFr ? oldFr : newFr);
-          obj.op = ip + secs * newFr;
-        }
-        // 层可见时间窗口按 newFr/oldFr 比例换算（不改关键帧t）
-        const rf = (hadFr ? (newFr/oldFr) : 1);
-        if(Array.isArray(obj.layers)){ for(const ly of obj.layers){ if(typeof ly.ip==='number') ly.ip*=rf; if(typeof ly.op==='number') ly.op*=rf; if(typeof ly.st==='number') ly.st*=rf; } }
-        if(Array.isArray(obj.assets)){ for(const a of obj.assets){ if(Array.isArray(a.layers)){ for(const ly of a.layers){ if(typeof ly.ip==='number') ly.ip*=rf; if(typeof ly.op==='number') ly.op*=rf; if(typeof ly.st==='number') ly.st*=rf; } } } }
-        if(Array.isArray(obj.markers)){ for(const m of obj.markers){ if(typeof m.tm==='number') m.tm*=rf; if(typeof m.dr==='number') m.dr*=rf; } }
-
-      } else { // scale-keyframes
-        obj.fr = newFr;
-        if(hadFr){
-          scaleAllTimings(obj, factor);
-        }else{
-          showLog('未检测到旧帧率，无法精确缩放关键帧，仅设置 fr。','warn');
-        }
-      }
-
-      processedObj = obj;
-      const outText = JSON.stringify(obj, null, 2);
-      renderRight(processedObj, searchRight.value);
-      updateStats(obj);
-      showLog('处理完成：将自动下载结果。', 'ok');
-
-      const base = (fileName||'lottie.json').replace(/\.json$/i,'');
-      const outName = `${base}-fr${newFr}${mode==='scale-keyframes'?'-scaled':mode==='keep-duration'?'-keepdur':''}.json`;
-      autoDownloadFile(outName, outText, 'application/json');
-
-      if(enablePreview.checked) refreshPlayers();
-    }catch(e){
-      showLog('处理失败：'+(e?.message||e), 'err');
-      console.error(e);
-    }
-  });
-
-  // === search & copy ===
-  searchLeft.addEventListener('input', ()=>{ try{ renderLeft(JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2), searchLeft.value.trim()); }catch{} });
-  searchRight.addEventListener('input', ()=>{ renderRight(processedObj, searchRight.value.trim()); });
-  $('#copyLeft').addEventListener('click', async ()=>{ try{ const t = JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2); await navigator.clipboard.writeText(t); }catch{} });
-  $('#copyRight').addEventListener('click', async ()=>{ try{ const t = processedObj? JSON.stringify(processedObj,null,2):''; await navigator.clipboard.writeText(t); }catch{} });
-
-  // init
-  renderLeft('{\n  "tips": "上传后这里显示源 JSON（已格式化）"\n}');
+  searchLeft.addEventListener('input',()=>{try{renderLeft(JSON.stringify(JSON.parse(originalJsonText||'{}'),null,2),searchLeft.value);}catch{}});
+  searchRight.addEventListener('input',()=>renderRight(processedObj,searchRight.value));
 })();
 </script>
 </body>
