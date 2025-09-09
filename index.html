@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Lottie 帧率修改与预览工具（修正版｜默认预览｜透明棋盘背景）</title>
+<title>Lottie 帧率修改与预览工具（Eric Sun）</title>
 <style>
   :root{--bg:#0f1115;--fg:#e8eaf0;--muted:#9aa0a6;--card:#171a21;--acc:#5aa9ff;--ok:#33d17a;--warn:#ffb86b;--err:#ff6b6b;--code:#0b0e14;--bd:#222733}
   html,body{background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Noto Sans SC,Helvetica,Arial;margin:0}
@@ -36,22 +36,20 @@
   .player{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0b0f16}
   .player-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd)}
 
-/* ✅ 使用参考图的棋盘格颜色（#fff 与 #eee） */
-.frame {
-  height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* ✅ 棋盘格背景：#fff / #eee（和你参考图一致） */
+.frame{
+  height:280px;
+  display:flex;align-items:center;justify-content:center;
   background-image:
     linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee),
     linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%, #fff);
-  background-size: 20px 20px;
-  background-position: 0 0, 10px 10px;
+  background-size:16px 16px;
+  background-position:0 0, 8px 8px;
 }
-.stage {
-  width: 100%;
-  height: 100%;
-  background: transparent;
+.stage{
+  width:100%;
+  height:100%;
+  background:transparent; /* 强制透明 */
 }
 
 }
@@ -61,7 +59,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🎞️ Lottie 帧率修改与预览工具（修正版｜默认预览｜透明棋盘背景）</h1>
+  <h1>👌🏻 Lottie 帧率修改与预览工具（Eric Sun）</h1>
   <div class="card">
     <div class="row">
       <div class="col">
