@@ -534,35 +534,6 @@
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), ms);
       }
-// —— 清理上一个文件与界面状态 —— //
-function clearPreviousFileUI(reason){
-  try{
-    // 销毁动画实例
-    if (anim1) { anim1.destroy(); anim1 = null; }
-    if (anim2) { anim2.destroy(); anim2 = null; }
-  }catch(_){}
-
-  // 清空预览容器与统计
-  stage1.innerHTML = '';
-  stage2.innerHTML = '';
-  statsEl.hidden = true;
-
-  // 清空状态
-  originalObj = null;
-  processedObj = null;
-  hasApplied = false;
-  fileName = 'lottie.json';
-
-  // 控件状态
-  if (fpsInp) fpsInp.value = '';
-  if (applyBtn) applyBtn.disabled = true;
-  if (downloadBtn) downloadBtn.disabled = true;
-
-  // 保险：清空文件选择器（避免同名文件不触发 change）
-  if (fileInput) fileInput.value = '';
-
-  if (reason) showToast(reason);
-}
 
       /* ========= 统计 ========= */
       function updateStats(o) {
@@ -660,12 +631,7 @@ function clearPreviousFileUI(reason){
 
       /* ========= 统一处理文件（点击/拖拽都会走这里） ========= */
       async function handleFile(file) {
-        async function handleFile(file){
-  // 新文件来之前，先清空旧文件的预览与状态
-  clearPreviousFileUI('已清空上一个文件，正在载入…');
-  try{
-    if(!file){ showToast('未选择文件'); return; }
-    // …（后面的解析逻辑保持不变）…
+        
         try {
           if (!file) { showToast('未选择文件'); return; }
           if (!/\.json$/i.test(file.name)) { showToast('请上传 .json 文件'); }
