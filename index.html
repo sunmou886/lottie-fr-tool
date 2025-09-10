@@ -660,6 +660,12 @@ function clearPreviousFileUI(reason){
 
       /* ========= 统一处理文件（点击/拖拽都会走这里） ========= */
       async function handleFile(file) {
+        async function handleFile(file){
+  // 新文件来之前，先清空旧文件的预览与状态
+  clearPreviousFileUI('已清空上一个文件，正在载入…');
+  try{
+    if(!file){ showToast('未选择文件'); return; }
+    // …（后面的解析逻辑保持不变）…
         try {
           if (!file) { showToast('未选择文件'); return; }
           if (!/\.json$/i.test(file.name)) { showToast('请上传 .json 文件'); }
