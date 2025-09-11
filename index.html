@@ -212,6 +212,8 @@
       opacity: .5;
       cursor: not-allowed;
     }
+/* 确保 hidden 一定生效，覆盖任何 display 设置 */
+.loading-overlay[hidden] { display: none !important; }
 
     /* 无障碍隐藏：不要 display:none，避免 Safari 拒绝触发 */
     input[type="file"] {
@@ -758,24 +760,25 @@ const loadingTextEl = document.getElementById('loadingText');
 function showLoading(msg='处理中…'){
   if (loadingTextEl) loadingTextEl.textContent = msg;
   if (loadingEl){
-    loadingEl.hidden = false;
+    loadingEl.hidden = false;            // ← 打开
     loadingEl.setAttribute('aria-busy', 'true');
   }
-  // 禁用关键按钮，防误操作
   if (applyBtn) applyBtn.disabled = true;
   if (downloadBtn) downloadBtn.disabled = true;
 }
 
 function hideLoading(){
   if (loadingEl){
-    loadingEl.hidden = true;
+    loadingEl.hidden = true;             // ← 关闭
     loadingEl.setAttribute('aria-busy', 'false');
   }
-  // 恢复“应用”按钮的可用性依据：有原始文件才开放
   if (originalObj) applyBtn.disabled = false;
-  // 下载按钮是否可用仍由 hasApplied 控制
   if (downloadBtn) downloadBtn.disabled = !hasApplied;
 }
+
+/* 初始化时再保险关一次（如果某处意外打开了） */
+hideLoading();
+
 
       /* ========= 下载工具 ========= */
       function autoDownload(name, text) {
@@ -898,6 +901,7 @@ function hideLoading(){
     <div class="loading-text" id="loadingText">正在处理…</div>
   </div>
 </div>
+
 
 </body>
 
