@@ -378,6 +378,11 @@
     .fps-input::placeholder {
       color: #b3b1ab;
     }
+    .fps-input:focus {
+  outline: none; /* 去掉默认蓝色描边 */
+  border-color: #8ca86d;   /* 改成你想要的边框色，比如绿色 */
+  box-shadow: 0 0 0 2px rgba(140, 168, 109, 0.3); /* 自定义 focus 阴影 */
+}
 
     .submit {
       width: 100%;
