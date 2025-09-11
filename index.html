@@ -99,6 +99,25 @@
       /* 图标颜色也随 hover 变化 */
     }
 
+    /* Loading 覆盖层 */
+.loading-overlay{
+  position:fixed; inset:0; z-index:9998;
+  background:rgba(255,255,255,.6);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:saturate(180%) blur(3px);
+}
+.loading-box{
+  background:#fff; border:1px solid #ece9e2; border-radius:16px;
+  padding:16px 18px; display:flex; align-items:center; gap:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+.spinner{
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid #d9d7d2; border-top-color:#3f3b35;
+  animation:spin .8s linear infinite;
+}
+.loading-text{ color:#3f3b35; font-weight:700; font-size:14px; }
+@keyframes spin{ to{ transform:rotate(360deg);} }
 
 
     .wrap {
@@ -647,46 +666,45 @@
       }
 
       /* ========= 统一处理文件（点击/拖拽都会走这里） ========= */
-      async function handleFile(file) {
-        
-        try {
-          if (!file) { showToast('未选择文件'); return; }
-          if (!/\.json$/i.test(file.name)) { showToast('请上传 .json 文件'); }
+      async function handleFile(file){
+  showLoading('正在载入 JSON…');
+  try{
+    if(!file){ hideLoading(); showToast('未选择文件'); return; }
+    if(!/\.json$/i.test(file.name)){ /* 不早退，让用户看到错误再隐藏 */ }
 
-          // 读取文本：优先 file.text()，失败回退 FileReader
-          let txt = '';
-          try { txt = await file.text(); }
-          catch {
-            txt = await new Promise((resolve, reject) => {
-              const r = new FileReader();
-              r.onerror = () => reject(r.error);
-              r.onload = () => resolve(String(r.result || '')); r.readAsText(file);
-            });
-          }
-          // 去 BOM
-          txt = txt.replace(/^\uFEFF/, '');
+    let txt='';
+    try{ txt = await file.text(); }
+    catch{
+      txt = await new Promise((resolve,reject)=>{
+        const r = new FileReader();
+        r.onerror = ()=>reject(r.error);
+        r.onload  = ()=>resolve(String(r.result||'')); 
+        r.readAsText(file);
+      });
+    }
+    txt = txt.replace(/^\uFEFF/, '');
 
-          // JSON 解析
-          const obj = JSON.parse(txt);
+    const obj = JSON.parse(txt);
+    clearPreviousFileUI();   // 清旧
+    fileName = file.name;
+    originalObj = obj;
+    processedObj = null;
 
-          // 保存 & 刷新
-          fileName = file.name;
-          originalObj = obj;
-          processedObj = null;
-          updateStats(originalObj);
-          refreshPlayers();
+    updateStats(originalObj);
+    refreshPlayers();
 
-          // 启用“应用”按钮，下载禁用，标记未应用
-          applyBtn.disabled = false;
-          downloadBtn.disabled = true;
-          hasApplied = false;
+    applyBtn.disabled = false;
+    downloadBtn.disabled = true;
+    hasApplied = false;
 
-          showToast('已载入：' + fileName);
-        } catch (err) {
-          console.error('[handleFile]', err);
-          showToast('文件处理失败或 JSON 解析失败');
-        }
-      }
+    showToast('已载入：' + fileName);
+  }catch(err){
+    console.error('[handleFile]', err);
+    showToast('文件处理失败或 JSON 解析失败');
+  }finally{
+    hideLoading();
+  }
+}
 
       /* ========= 上传交互：点击 / 拖拽 ========= */
       // 如果不是<label for=file>，才兜底触发
@@ -733,6 +751,31 @@
         hasApplied = false;
         downloadBtn.disabled = true;
       });
+// —— Loading 控制 —— //
+const loadingEl = document.getElementById('loading');
+const loadingTextEl = document.getElementById('loadingText');
+
+function showLoading(msg='处理中…'){
+  if (loadingTextEl) loadingTextEl.textContent = msg;
+  if (loadingEl){
+    loadingEl.hidden = false;
+    loadingEl.setAttribute('aria-busy', 'true');
+  }
+  // 禁用关键按钮，防误操作
+  if (applyBtn) applyBtn.disabled = true;
+  if (downloadBtn) downloadBtn.disabled = true;
+}
+
+function hideLoading(){
+  if (loadingEl){
+    loadingEl.hidden = true;
+    loadingEl.setAttribute('aria-busy', 'false');
+  }
+  // 恢复“应用”按钮的可用性依据：有原始文件才开放
+  if (originalObj) applyBtn.disabled = false;
+  // 下载按钮是否可用仍由 hasApplied 控制
+  if (downloadBtn) downloadBtn.disabled = !hasApplied;
+}
 
       /* ========= 下载工具 ========= */
       function autoDownload(name, text) {
@@ -848,6 +891,13 @@
     </a>
   </footer>
 
+<!-- Loading 覆盖层 -->
+<div id="loading" class="loading-overlay" aria-live="polite" aria-busy="false" hidden>
+  <div class="loading-box">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="loading-text" id="loadingText">正在处理…</div>
+  </div>
+</div>
 
 </body>
 
