@@ -49,6 +49,16 @@
       color: var(--text);
       font: 14px/1.6 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, PingFang SC, Helvetica, Arial, sans-serif;
     }
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 图标和文字的间距 */
+}
+.title-icon {
+  width: 28px; /* 根据需要调节 */
+  height: 28px;
+  object-fit: contain;
+}
 
     .footer {
 
@@ -466,7 +476,11 @@
 
 <body>
   <div class="wrap">
-    <h2 class="title">👌 Lottie动画帧率修改和Json预览工具</h2>
+    <h2 class="title">
+  <img src="/meme.gif" alt="logo" class="title-icon">
+  Lottie 动画帧率修改和 Json 预览工具
+</h2>
+
     <div class="card">
       <div class="upload-box" id="uploadBox">
         <input id="file" type="file" accept=".json,application/json" />
