@@ -833,6 +833,32 @@ function hideLoading(){
   if (downloadBtn) downloadBtn.disabled = !hasApplied;
 }
 
+      // —— 清空旧文件与预览 —— //
+function clearPreviousFileUI(reason){
+  try {
+    if (anim1) { anim1.destroy(); anim1 = null; }
+    if (anim2) { anim2.destroy(); anim2 = null; }
+  } catch(_){}
+
+  stage1.innerHTML = '';
+  stage2.innerHTML = '';
+  statsEl.hidden = true;
+
+  originalObj = null;
+  processedObj = null;
+  hasApplied = false;
+  fileName = 'lottie.json';
+
+  if (fpsInp) fpsInp.value = '';
+  if (applyBtn) applyBtn.disabled = true;
+  if (downloadBtn) downloadBtn.disabled = true;
+
+  // 只清空文件选择器的值，不移除节点
+  if (fileInput) fileInput.value = '';
+
+  if (reason) showToast(reason);
+}
+
 /* 初始化时再保险关一次（如果某处意外打开了） */
 hideLoading();
 
