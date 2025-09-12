@@ -667,28 +667,83 @@
         if (processedObj) { if (anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
       }
 
-      /* ========= 统一处理文件（点击/拖拽都会走这里） ========= */
-      async function handleFile(file){
+      // 读取 File 为 UTF-8 文本，带降级与明确报错
+async function readFileAsTextUTF8(file) {
+  if (!file) throw new Error('未选择文件');
+  // 优先走现代 API
+  if (typeof file.text === 'function') {
+    return await file.text();
+  }
+  // 旧浏览器降级
+  return await new Promise((resolve, reject) => {
+    try {
+      const r = new FileReader();
+      r.onerror = () => reject(new Error('读取失败：' + (r.error?.message || 'FileReader error')));
+      // 强制以 UTF-8 读取，避免某些平台编码误判
+      r.onload = () => resolve(String(r.result || ''));
+      if (r.readAsText.length >= 2) {
+        // 某些内核支持第二个参数 encoding
+        r.readAsText(file, 'utf-8');
+      } else {
+        r.readAsText(file);
+      }
+    } catch (e) {
+      reject(new Error('读取失败：' + e.message));
+    }
+  });
+}
+
+// 去 BOM + 允许常见注释（//、/* */）+ 修整空白
+function preprocessJsonText(raw) {
+  let s = String(raw ?? '');
+  // 去 BOM
+  if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+  // 只在看起来是纯文本 JSON 时移除注释（避免错误删除字符串里的//）
+  // 简单实用的 JSONC 处理：去掉行注释与块注释
+  s = s
+    .replace(/^\s*\/\/.*$/gm, '')              // 行注释 //
+    .replace(/\/\*[\s\S]*?\*\//g, '')          // 块注释 /* */
+    .trim();
+  return s;
+}
+
+// 更明确的 JSON 解析报错
+function safeParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    // 给出更直观的提示
+    throw new Error('JSON 解析失败：' + (e.message || '未知错误'));
+  }
+}
+
+     async function handleFile(file){
   showLoading('正在载入 JSON…');
   try{
-    if(!file){ hideLoading(); showToast('未选择文件'); return; }
-    if(!/\.json$/i.test(file.name)){ /* 不早退，让用户看到错误再隐藏 */ }
+    if (!file) throw new Error('未选择文件');
 
-    let txt='';
-    try{ txt = await file.text(); }
-    catch{
-      txt = await new Promise((resolve,reject)=>{
-        const r = new FileReader();
-        r.onerror = ()=>reject(r.error);
-        r.onload  = ()=>resolve(String(r.result||'')); 
-        r.readAsText(file);
-      });
+    // 允许非 .json 的后缀（比如导出时忘改名），但给出提示
+    const looksJson = /\.json$/i.test(file.name);
+    if (!looksJson) showToast('提示：文件后缀不是 .json，也尝试解析');
+
+    // 读取文本（更健壮）
+    const raw = await readFileAsTextUTF8(file);
+
+    // 预处理：去 BOM、注释、首尾空白
+    const cleaned = preprocessJsonText(raw);
+
+    // 快速健诊：明显非 JSON
+    if (!cleaned || (cleaned[0] !== '{' && cleaned[0] !== '[')) {
+      throw new Error('文件内容不是有效的 JSON 文本（开头不是 { 或 [ ）');
     }
-    txt = txt.replace(/^\uFEFF/, '');
 
-    const obj = JSON.parse(txt);
-    clearPreviousFileUI();   // 清旧
-    fileName = file.name;
+    // 解析
+    const obj = safeParseJson(cleaned);
+
+    // —— 到这里已成功 ——：再清旧状态，避免误删节点或事件
+    clearPreviousFileUI();
+
+    fileName = file.name || 'lottie.json';
     originalObj = obj;
     processedObj = null;
 
@@ -702,7 +757,8 @@
     showToast('已载入：' + fileName);
   }catch(err){
     console.error('[handleFile]', err);
-    showToast('文件处理失败或 JSON 解析失败');
+    // 更友好的错误提示
+    showToast(err?.message || '文件处理失败或 JSON 解析失败');
   }finally{
     hideLoading();
   }
