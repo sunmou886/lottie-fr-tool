@@ -610,6 +610,41 @@
       }
       const deepClone = o => (window.structuredClone ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
+      // —— 小工具：只把帧值取整 —— //
+function roundFrameInt(v){
+  return (typeof v === 'number' && Number.isFinite(v)) ? Math.round(v) : v;
+}
+
+/**
+ * —— 兼容修复 ——  
+ * 1) 渐变填充 "ty":"gf" => 强制 t=1  
+ * 2) 顶层及各层的 ip/op/st 取整
+ */
+function normalizeForMobile(root){
+  if (!root || typeof root !== 'object') return root;
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (!cur || typeof cur !== 'object') continue;
+
+    // 1) 渐变填充
+    if (cur.ty === 'gf') cur.t = 1;
+
+    // 2) 帧边界取整
+    if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
+    if ('op' in cur) cur.op = roundFrameInt(cur.op);
+    if ('st' in cur) cur.st = roundFrameInt(cur.st);
+
+    // 递归
+    for (const k in cur){
+      const v = cur[k];
+      if (v && typeof v === 'object') stack.push(v);
+    }
+  }
+  return root;
+}
+
+
       /* ========= Lottie 时间缩放工具 ========= */
       function scaleMarkers(markers, f) { if (!Array.isArray(markers)) return; for (const m of markers) { if (typeof m.tm === 'number') m.tm *= f; if (typeof m.dr === 'number') m.dr *= f; } }
       function scaleTimeRemap(tm, f) {
@@ -946,7 +981,8 @@ hideLoading();
             if (hadFr) { scaleAllTimings(obj, factor); }
             else { showToast('未检测到旧帧率，仅设置 fr'); }
           }
-
+          // —— 新增：做兼容修复 —— //
+          normalizeForMobile(obj);
           processedObj = obj;
           updateStats(processedObj);  // 用修改后的数据更新统计
           refreshPlayers();           // 右侧预览更新
