@@ -1,127 +1,167 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lottie动画帧率修改和json预览工具</title>
-  <meta name="description" content="自由的修改Lottie动画帧率并支持预览">
-  <!-- ✅ favicon / 浏览器标签图标 -->
-  <link rel="icon" href="/favicon.ico" sizes="any"> <!-- 16x16 / 32x32 内嵌多分辨率 -->
-  <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
-  <!-- ✅ iOS Safari / Android 主屏幕图标 -->
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
-  <link rel="manifest" href="/site.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lottie 帧率修改与预览工具</title>
+<meta name="description" content="上传 Lottie JSON，一键修改帧率，三种模式对比预览，并可选无损压缩与内嵌 PNG→WebP。">
 
-  <!-- ✅ Open Graph / 社交分享 -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://example.com/">
-  <meta property="og:title" content="Lottie动画帧率修改和Json预览工具">
-  <meta property="og:description" content="自由的修改Lottie动画帧率并支持预览。">
-  <meta property="og:image" content="https://example.com/og-image.png">
+<!-- 站点图标/分享（按需替换） -->
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lottie 帧率修改与预览工具">
+<meta property="og:description" content="上传 Lottie JSON，一键修改帧率，三种模式对比预览，并下载结果。">
+<meta property="og:image" content="https://your-domain.example/og-image.png">
+<meta property="og:url" content="https://your-domain.example/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lottie 帧率修改与预览工具">
+<meta name="twitter:description" content="上传 Lottie JSON，一键修改帧率，三种模式对比预览，并下载结果。">
+<meta name="twitter:image" content="https://your-domain.example/og-image.png">
 
-  <!-- ✅ Twitter Cards -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://example.com/">
-  <meta name="twitter:title" content="Lottie动画帧率修改和Json预览工具">
-  <meta name="twitter:description" content="自由的修改Lottie动画帧率并支持预览。">
-  <meta name="twitter:image" content="https://example.com/og-image.png">
-
-  <style>
-    :root {
-      --bg: #f7f6f3;
-      --card: #ffffff;
-      --text: #2b2b2b;
-      --muted: #9a9a95;
-      --line: #e9e7e2;
-      --accent: #46473E;
-      --accent-press: #2f2b26;
-      --pill-active: #d8e7b9;
-      --pill-text: #40443a;
-      --shadow: 0 2px 12px rgba(0, 0, 0, .05);
-    }
-
-    html,
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 14px/1.6 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, PingFang SC, Helvetica, Arial, sans-serif;
-    }
-.title {
-  display: flex;
-  align-items: center;
-  gap: 8px; /* 图标和文字的间距 */
+<!-- 字体：ASCII 用 MapleMono，中文用衬线体 -->
+<style>
+@font-face{
+  font-family:"MapleMonoAscii";
+  src:url("https://cdn.jsdelivr.net/gh/subframe7536/maple-font/MapleMono/MapleMono-Regular.woff2") format("woff2");
+  font-display:swap; font-weight:400; font-style:normal;
+  unicode-range:U+0000-00FF, U+2000-206F, U+20A0-20CF, U+2190-21FF;
 }
-.title-icon {
-  width: 48px; /* 根据需要调节 */
-  height: 100%;
-  object-fit: contain;
+@font-face{
+  font-family:"CJKSerif";
+  src:local("Source Han Serif SC"), local("Noto Serif CJK SC"),
+      local("Songti SC"), local("STSong"), local("SimSun");
+  font-display:swap; font-weight:400; font-style:normal;
+  unicode-range:U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+:root{
+  --bg:#f7f6f3; --card:#ffffff; --text:#2b2b2b; --muted:#9a9a95; --line:#dcdad5;
+  --accent:#3f3b35; --accent-press:#2f2b26; --pill-active:#d8e7b9; --pill-text:#40443a;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --tile-c1:#faf9f7; --tile-c2:#efeee9; --tile-size:16px;
+}
+html,body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-size:14px;line-height:1.6;
+  font-family:"MapleMonoAscii","CJKSerif",serif;
+}
+button,input,select,textarea{ font-family:inherit; }
+.wrap{max-width:1100px;margin:24px auto 48px;padding:0 20px;}
+.title{font-weight:600;font-size:14px;margin:0 0 10px 6px;color:#242424;}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);
+  padding:18px;border:1px solid #ece9e2;}
+/* 上传框（可调点长与间距的虚线） */
+.upload-box{
+  border:2px dashed transparent;
+  border-radius:24px;height:180px;display:flex;align-items:center;justify-content:center;position:relative;
+  background:#fcfbf8;
+  border-image: repeating-linear-gradient(
+    to right,
+    var(--line) 0,
+    var(--line) 4px,
+    transparent 4px,
+    transparent 12px
+  ) 1 round;
+}
+.upload-box.dragover{ background:#f4f8ee; border-color:#cfe0a6; }
+.upload-btn{background:var(--accent);color:#fff;border:none;border-radius:999px;
+  padding:10px 22px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.upload-btn:active{background:var(--accent-press);transform:translateY(1px);}
+/* 隐藏 file input（无障碍友好） */
+input[type="file"]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.upload-tip{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:12px;color:#6f6f6a;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px;}
+.stat{background:#fbfaf7;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.stat b{display:block;color:#7f7d77;font-size:12px;margin-bottom:6px;}
+.stat .v{font-size:18px;font-weight:700;color:#262626;}
+
+.card-mid{margin-top:16px;background:var(--card);border-radius:20px;box-shadow:var(--shadow);
+  padding:18px;border:1px solid #ece9e2;}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.player{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+.player-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid var(--line);background:#faf9f6;}
+.ph-title{font-size:12px;color:#6d6b66;}
+.ph-actions{display:flex;gap:8px;}
+.sm-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;}
+.sm-btn:active{background:var(--accent-press);}
+.frame{
+  height:360px; display:flex; align-items:center; justify-content:center;
+  background-color:var(--tile-c1);
+  background-image: conic-gradient(var(--tile-c2) 25%, var(--tile-c1) 0 50%, var(--tile-c2) 0 75%, var(--tile-c1) 0);
+  background-size: var(--tile-size) var(--tile-size);
+}
+.stage{width:100%;height:100%;background:transparent;}
+
+.card-bottom{margin-top:16px;background:var(--card);border-radius:20px;box-shadow:var(--shadow);
+  padding:18px;border:1px solid #ece9e2;}
+.section-title{font-size:12px;color:#6d6b66;margin:4px 2px 10px;}
+.modes{display:flex;gap:12px;flex-wrap:wrap;}
+.pill{border-radius:999px;padding:10px 14px;border:1px solid var(--line);background:#f5f4f1;color:#6a6a63;cursor:pointer;}
+.pill.active{background:#d8e7b9;color:#40443a;border-color:#c8d99c;font-weight:700;}
+.fps-row{display:flex;gap:16px;align-items:center;margin:18px 0 16px;}
+.fps-input{width:280px;max-width:100%;height:44px;padding:0 14px;border-radius:12px;
+  border:1px solid var(--line);background:#fbfaf7;color:#2a2a2a;font-size:14px;}
+.apply-btn{
+  height:44px;padding:0 20px;border:none;border-radius:12px;background:#3f3b35;color:#fff;font-weight:700;cursor:pointer;
+}
+.apply-btn:active{background:#2f2b26;transform:translateY(1px);}
+.apply-btn:disabled{opacity:.5;cursor:not-allowed;}
+.submit{width:100%;height:46px;border:none;border-radius:12px;background:#3f3b35;color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+.submit:active{background:#2f2b26;transform:translateY(1px);}
+.submit:disabled{opacity:.5;cursor:not-allowed;}
+
+/* 禁掉 number 的上下小箭头 + 自定义 focus 色 */
+.fps-input::-webkit-outer-spin-button,
+.fps-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+.fps-input[type="number"]{ -moz-appearance:textfield; }
+.fps-input:focus { outline:none; border-color:#8ca86d; box-shadow:0 0 0 2px rgba(140,168,109,.3); }
+
+/* 压缩选项 */
+.compress-row{
+  display:flex; flex-wrap:wrap; gap:14px 18px;
+  align-items:center; margin:8px 0 14px;
+  color:#5f5d58; font-size:13px;
+}
+.chk{ display:inline-flex; align-items:center; gap:6px; }
+.prec{ display:inline-flex; align-items:center; gap:8px; }
+.prec-input{
+  width:64px; height:34px; padding:0 10px; border-radius:10px;
+  border:1px solid var(--line); background:#fbfaf7; color:#2a2a2a;
 }
 
-.title-icon2 {
-  width: 56px; /* 根据需要调节 */
-  height: 100%;
-  object-fit: contain;
+/* Toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:rgba(0,0,0,.82);color:#fff;padding:10px 16px;border-radius:10px;
+  font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+/* Footer/Feishu */
+.footer { margin-top: 40px; padding: 24px 0; background: #f7f6f3; text-align: center; }
+.footer-content{
+  display:inline-flex; align-items:center; gap:8px;
+  color:#666; text-decoration:none; transition:color .25s ease;
 }
-    
-    .footer {
+.footer-content span{ font-size:16px; line-height:1; }
+.footer-content svg{ width:24px; height:24px; flex-shrink:0; }
+.footer-content svg [fill]:not([fill="none"]){ fill: currentColor !important; transition: fill .25s ease; }
+.footer-content svg [stroke]:not([stroke="none"]){ stroke: currentColor !important; transition: stroke .25s ease; }
+.footer-content:hover{ color:#46473E; }
 
-      padding: 24px 0 40px 0;
-      background: #f7f6f3;
-      text-align: center;
-    }
+@media(max-width:920px){.players{grid-template-columns:1fr;}.frame{height:320px;}}
 
-    .footer-content {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #94928D;
-      font-size: 16px;
-      text-decoration: none;
-      /* 去掉下划线 */
-      transition: color 0.3s ease;
-    }
-
-    .footer-content svg {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-    }
-
-    .footer-content svg [fill]:not([fill="none"]) {
-      fill: currentColor !important;
-      transition: fill .25s ease;
-    }
-
-    .footer-content svg [stroke]:not([stroke="none"]) {
-      stroke: currentColor !important;
-      transition: stroke .25s ease;
-    }
-
-    /* hover 效果 */
-    .footer-content:hover {
-      color: #46473E;
-      /* 悬停时，文字和图标一起变色 */
-    }
-
-    .footer-content:hover {
-      color: #46473E;
-    }
-
-    .footer-content:hover svg path[fill] {
-      fill: #46473E;
-      /* 图标颜色也随 hover 变化 */
-    }
-
-    /* Loading 覆盖层 */
+/* Loading 覆盖层 */
 .loading-overlay{
   position:fixed; inset:0; z-index:9998;
   background:rgba(255,255,255,.6);
   display:flex; align-items:center; justify-content:center;
   backdrop-filter:saturate(180%) blur(3px);
 }
+.loading-overlay[hidden]{ display:none !important; }
 .loading-box{
   background:#fff; border:1px solid #ece9e2; border-radius:16px;
   padding:16px 18px; display:flex; align-items:center; gap:12px;
@@ -134,906 +174,125 @@
 }
 .loading-text{ color:#3f3b35; font-weight:700; font-size:14px; }
 @keyframes spin{ to{ transform:rotate(360deg);} }
+</style>
 
-
-    .wrap {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 20px;
-    }
-
-    .title {
-      font-weight: 600;
-      font-size: 24px;
-      margin: 0 0 24px 6px;
-      color: #242424;
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      padding: 24px;
-
-    }
-
-    .upload-box {
-      border: 1.5px dashed var(--line);
-      border-radius: 16px;
-      height: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-
-    .upload-btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      padding: 10px 40px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .upload-btn:active {
-      background: var(--accent-press);
-      transform: translateY(1px);
-    }
-
-    .upload-tip {
-      position: absolute;
-      bottom: 48px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 12px;
-      color: #94928D;
-    }
-
-    .upload-box.dragover {
-      background: #f4f8ee;
-      border-color: #cfe0a6;
-    }
-
-    .fps-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      margin: 0px 0 24px;
-    }
-
-    .apply-btn {
-      height: 44px;
-      padding: 0 20px;
-      border: none;
-      border-radius: 12px;
-      background: #47453E;
-      color: #fff;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .apply-btn:active {
-      background: #2f2b26;
-      transform: translateY(1px);
-    }
-
-    .apply-btn:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-/* 确保 hidden 一定生效，覆盖任何 display 设置 */
-.loading-overlay[hidden] { display: none !important; }
-
-    /* 无障碍隐藏：不要 display:none，避免 Safari 拒绝触发 */
-    input[type="file"] {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .stat {
-      background: #fbfaf7;
-      border: 0.5px solid var(--line);
-      border-radius: 16px;
-      padding: 14px 16px;
-    }
-
-    .stat b {
-      display: block;
-      color: #7f7d77;
-      font-size: 12px;
-      margin-bottom: 6px;
-    }
-
-    .stat .v {
-      font-size: 18px;
-      font-weight: 700;
-      color: #262626;
-    }
-
-    .card-mid {
-      margin-top: 16px;
-      background: var(--card);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      padding: 24px;
-
-    }
-
-    .players {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .player {
-      background: #fff;
-      border: 0.5px solid var(--line);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .player-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-bottom: 0.5px solid var(--line);
-      background: #faf9f6;
-    }
-
-    .ph-title {
-      font-size: 12px;
-      color: #6d6b66;
-      font-weight: 700;
-    }
-
-    .ph-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .sm-btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 6px 10px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .sm-btn:active {
-      background: var(--accent-press);
-    }
-
-    .frame {
-      --tile: 18px;
-      --c1: #fff;
-      --c2: #eee;
-      height: 360px;
-      background-color: var(--c1);
-      background-image: conic-gradient(var(--c2)25%, var(--c1)0 50%, var(--c2)0 75%, var(--c1)0);
-      background-size: var(--tile) var(--tile);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .stage {
-      width: 100%;
-      height: 100%;
-      background: transparent;
-    }
-
-    .card-bottom {
-      margin-top: 16px;
-      background: var(--card);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      padding: 24px;
-
-    }
-
-    .section-title {
-      font-size: 12px;
-      color: #6d6b66;
-      margin: 0px 2px 10px;
-      font-weight: 700;
-    }
-
-    .modes {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .pill {
-      border-radius: 12px;
-      padding: 10px 14px;
-
-      background: #f5f4f1;
-      color: #6a6a63;
-      cursor: pointer;
-    }
-
-    .pill.active {
-      background: #D2DF93;
-      color: #40443a;
-
-      font-weight: 600;
-    }
-
-    .fps-wrap {
-      margin: 18px 0 16px;
-    }
-
-/* Chrome / Edge / Safari */
-.fps-input::-webkit-outer-spin-button,
-.fps-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-/* Firefox */
-.fps-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-    
-    .fps-input {
-      width: 280px;
-      max-width: 100%;
-      height: 44px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: #fbfaf7;
-      color: #2a2a2a;
-      font-size: 14px;
-    }
-
-    .fps-input::placeholder {
-      color: #b3b1ab;
-    }
-    .fps-input:focus {
-  outline: none; /* 去掉默认蓝色描边 */
-  border-color: #8ca86d;   /* 改成你想要的边框色，比如绿色 */
-  box-shadow: 0 0 0 2px rgba(140, 168, 109, 0.3); /* 自定义 focus 阴影 */
-}
-
-    .submit {
-      width: 100%;
-      height: 46px;
-      border: none;
-      border-radius: 12px;
-      background: #47453E;
-      color: #fff;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .submit:active {
-      background: #2f2b26;
-      transform: translateY(1px);
-    }
-
-    .submit:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 24px;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, .82);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .25s, transform .25s;
-      z-index: 9999;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-4px);
-    }
-
-    @media(max-width:920px) {
-      .players {
-        grid-template-columns: 1fr;
-      }
-
-      .frame {
-        height: 320px;
-      }
-    }
-  </style>
-  <!-- 使用 unpkg 镜像，减少加载失败概率 -->
-  <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
-
-   <link rel="stylesheet" href="style.css">
+<!-- Lottie -->
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 </head>
-
 <body>
-  <div class="wrap">
-    <h2 class="title">
-  <img src="/meme2.gif" alt="logo" class="title-icon2">
-  Lottie 动画帧率修改和 JSON 预览工具
-      <img src="/meme.gif" alt="logo" class="title-icon">
-      
-</h2>
+<div class="wrap">
+  <h2 class="title">
+    <img src="/logo.gif" alt="logo" class="title-icon" style="width:28px;height:28px;object-fit:contain;margin-right:8px;">
+    Lottie 帧率修改与预览工具
+  </h2>
 
-    <div class="card">
-      <div class="upload-box" id="uploadBox">
-        <input id="file" type="file" accept=".json,application/json" />
-        <label for="file" class="upload-btn" id="btnPick" role="button" tabindex="0">上传文件</label>
-        <div class="upload-tip">或直接将 JSON 拖放至此</div>
-      </div>
-      <div class="stats" id="stats" hidden>
-        <div class="stat"><b>当前帧率</b>
-          <div class="v" id="curFr">-</div>
-        </div>
-        <div class="stat"><b>开始帧 ip</b>
-          <div class="v" id="curIp">-</div>
-        </div>
-        <div class="stat"><b>结束帧 op</b>
-          <div class="v" id="curOp">-</div>
-        </div>
-        <div class="stat"><b>时长 (秒)</b>
-          <div class="v" id="curSec">-</div>
-        </div>
-      </div>
+  <div class="card">
+    <div class="upload-box" id="uploadBox">
+      <input id="file" type="file" accept=".json,application/json" />
+      <label for="file" class="upload-btn" id="btnPick" role="button" tabindex="0">上传文件</label>
+      <div class="upload-tip">拖拽到此或点击按钮，上传 Lottie JSON</div>
     </div>
-
-    <div class="card-mid">
-      <div class="players">
-        <div class="player">
-          <div class="player-head">
-            <div class="ph-title">源文件预览</div>
-            <div class="ph-actions">
-              <button class="sm-btn" id="p1Play">播</button>
-              <button class="sm-btn" id="p1Pause">停</button>
-              <button class="sm-btn" id="p1Stop">复</button>
-            </div>
-          </div>
-          <div class="frame">
-            <div id="stage1" class="stage"></div>
-          </div>
-        </div>
-
-        <div class="player">
-          <div class="player-head">
-            <div class="ph-title">修改后预览</div>
-            <div class="ph-actions">
-              <button class="sm-btn" id="p2Play">播</button>
-              <button class="sm-btn" id="p2Pause">停</button>
-              <button class="sm-btn" id="p2Stop">复</button>
-            </div>
-          </div>
-          <div class="frame">
-            <div id="stage2" class="stage"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-bottom">
-      <div class="section-title">选择模式</div>
-      <div class="modes" id="modeGroup">
-        <div class="pill active" data-mode="scale-keyframes">缩放所有关键帧时间（推荐）</div>
-        <div class="pill" data-mode="keep-duration">保持整体时长</div>
-        <div class="pill" data-mode="just-fr">仅修改帧率</div>
-      </div>
-
-      <div class="section-title" style="margin-top:24px;">目标帧率</div>
-
-      <!-- 新行：输入 + 应用按钮并排 -->
-      <div class="fps-row">
-        <input id="targetFr" class="fps-input" type="number" min="1" step="1" placeholder="请输入目标帧率（如 30）" />
-        <button id="applyBtn" class="apply-btn" disabled>应用</button>
-      </div>
-
-      <!-- 下载按钮：只有应用后才启用 -->
-      <button id="downloadBtn" class="submit" disabled>下载修改后的JSON</button>
-
+    <div class="stats" id="stats" hidden>
+      <div class="stat"><b>当前 fr</b><div class="v" id="curFr">-</div></div>
+      <div class="stat"><b>开始帧 ip</b><div class="v" id="curIp">-</div></div>
+      <div class="stat"><b>结束帧 op</b><div class="v" id="curOp">-</div></div>
+      <div class="stat"><b>时长 (秒)</b><div class="v" id="curSec">-</div></div>
     </div>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <div class="card-mid">
+    <div class="players">
+      <div class="player">
+        <div class="player-head">
+          <div class="ph-title">源文件预览</div>
+          <div class="ph-actions">
+            <button class="sm-btn" id="p1Play">播</button>
+            <button class="sm-btn" id="p1Pause">停</button>
+            <button class="sm-btn" id="p1Stop">复</button>
+          </div>
+        </div>
+        <div class="frame"><div id="stage1" class="stage"></div></div>
+      </div>
 
-  <script>
-    (() => {
-      const $ = s => document.querySelector(s);
+      <div class="player">
+        <div class="player-head">
+          <div class="ph-title">修改后预览</div>
+          <div class="ph-actions">
+            <button class="sm-btn" id="p2Play">播</button>
+            <button class="sm-btn" id="p2Pause">停</button>
+            <button class="sm-btn" id="p2Stop">复</button>
+          </div>
+        </div>
+        <div class="frame"><div id="stage2" class="stage"></div></div>
+      </div>
+    </div>
+  </div>
 
-      /* ========= 绑定元素 ========= */
-      const uploadBox = $('#uploadBox'), fileInput = $('#file'), pickBtn = $('#btnPick');
-      const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
-      const stage1 = $('#stage1'), stage2 = $('#stage2');
-      const p1Play = $('#p1Play'), p1Pause = $('#p1Pause'), p1Stop = $('#p1Stop');
-      const p2Play = $('#p2Play'), p2Pause = $('#p2Pause'), p2Stop = $('#p2Stop');
-      const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
-      const applyBtn = $('#applyBtn'), downloadBtn = $('#downloadBtn');
+  <div class="card-bottom">
+    <div class="section-title">选择模式</div>
+    <div class="modes" id="modeGroup">
+      <div class="pill active" data-mode="scale-keyframes">缩放所有关键帧时间（推荐）</div>
+      <div class="pill" data-mode="keep-duration">保持整体时长</div>
+      <div class="pill" data-mode="just-fr">仅修改帧率</div>
+    </div>
 
-      /* ========= 状态 ========= */
-      let activeMode = 'scale-keyframes';
-      let anim1 = null, anim2 = null;
-      let originalObj = null, processedObj = null;
-      let fileName = 'lottie.json';
-      let hasApplied = false;
+    <div class="section-title" style="margin-top:16px;">目标帧率</div>
+    <div class="fps-row">
+      <input id="targetFr" class="fps-input" type="number" min="1" step="1" placeholder="请输入目标帧率（如 30）" />
+      <button id="applyBtn" class="apply-btn" disabled>应用</button>
+    </div>
 
-      /* ========= Toast ========= */
-      const toast = $('#toast');
-      function showToast(msg, ms = 1800) {
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), ms);
-      }
+    <!-- 压缩选项 -->
+    <div class="compress-row">
+      <label class="chk">
+        <input id="optMinify" type="checkbox" checked>
+        启用压缩输出（降精度/删冗余）
+      </label>
+      <label class="chk">
+        <input id="optRemoveHidden" type="checkbox" checked>
+        移除隐藏图层 (hd:true)
+      </label>
+      <label class="chk">
+        <input id="optDropNames" type="checkbox" checked>
+        移除名称字段 (nm/mn)
+      </label>
+      <label class="chk">
+        <input id="optDropMarkers" type="checkbox">
+        移除 markers
+      </label>
+      <div class="prec">
+        小数保留
+        <input id="optPrecision" class="prec-input" type="number" min="0" max="6" value="3">
+        位（建议 3）
+      </div>
+      <label class="chk">
+        <input id="optPngToWebp" type="checkbox">
+        将内嵌 PNG 转成 WebP（仅在更小才替换）
+      </label>
+      <div class="prec">
+        WebP质量
+        <input id="optWebpQ" class="prec-input" type="number" min="0.1" max="1" step="0.05" value="0.8">
+      </div>
+    </div>
 
-      /* ========= 统计 ========= */
-      function updateStats(o) {
-        try {
-          const fr = +o.fr, ip = +o.ip, op = +o.op;
-          curFrEl.textContent = Number.isFinite(fr) ? fr : '-';
-          curIpEl.textContent = Number.isFinite(ip) ? ip : '-';
-          curOpEl.textContent = Number.isFinite(op) ? op : '-';
-          const sec = (Number.isFinite(fr) && Number.isFinite(ip) && Number.isFinite(op) && fr > 0) ? (op - ip) / fr : NaN;
-          curSecEl.textContent = Number.isFinite(sec) ? sec.toFixed(3) : '-';
-          statsEl.hidden = false;
-        } catch { statsEl.hidden = true; }
-      }
-      const deepClone = o => (window.structuredClone ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
+    <button id="downloadBtn" class="submit" disabled>下载</button>
+  </div>
+</div>
 
-      // —— 小工具：只把帧值取整 —— //
-function roundFrameInt(v){
-  return (typeof v === 'number' && Number.isFinite(v)) ? Math.round(v) : v;
-}
-
-/**
- * —— 兼容修复 ——  
- * 1) 渐变填充 "ty":"gf" => 强制 t=1  
- * 2) 顶层及各层的 ip/op/st 取整
- */
-function normalizeForMobile(root){
-  if (!root || typeof root !== 'object') return root;
-  const stack = [root];
-  while (stack.length){
-    const cur = stack.pop();
-    if (!cur || typeof cur !== 'object') continue;
-
-    // 1) 渐变填充
-    if (cur.ty === 'gf') cur.t = 1;
-
-    // 2) 帧边界取整
-    if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
-    if ('op' in cur) cur.op = roundFrameInt(cur.op);
-    if ('st' in cur) cur.st = roundFrameInt(cur.st);
-
-    // 递归
-    for (const k in cur){
-      const v = cur[k];
-      if (v && typeof v === 'object') stack.push(v);
-    }
-  }
-  return root;
-}
-
-
-      /* ========= Lottie 时间缩放工具 ========= */
-      function scaleMarkers(markers, f) { if (!Array.isArray(markers)) return; for (const m of markers) { if (typeof m.tm === 'number') m.tm *= f; if (typeof m.dr === 'number') m.dr *= f; } }
-      function scaleTimeRemap(tm, f) {
-        if (!tm) return;
-        if (typeof tm.k === 'number') { tm.k *= f; return; }
-        if (Array.isArray(tm.k)) {
-          for (const kf of tm.k) {
-            if (kf && typeof kf.t === 'number') kf.t *= f;
-            if (kf && kf.s != null) {
-              if (typeof kf.s === 'number') kf.s *= f;
-              else if (Array.isArray(kf.s) && typeof kf.s[0] === 'number') kf.s[0] *= f;
-            }
-            if (kf && kf.e != null) {
-              if (typeof kf.e === 'number') kf.e *= f;
-              else if (Array.isArray(kf.e) && typeof kf.e[0] === 'number') kf.e[0] *= f;
-            }
-          }
-        }
-      }
-      function scaleAllKeyframeTs(obj, f) {
-        const st = [obj];
-        while (st.length) {
-          const cur = st.pop();
-          if (!cur) continue;
-          if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
-          if (typeof cur === 'object') {
-            if (Object.prototype.hasOwnProperty.call(cur, 't') && typeof cur.t === 'number') {
-              const isKF = ('s' in cur) || ('e' in cur) || ('h' in cur) || ('i' in cur) || ('o' in cur) || ('hold' in cur) || ('k' in cur);
-              if (isKF) cur.t *= f;
-            }
-            for (const k in cur) {
-              const v = cur[k];
-              if (k === 'tm' && v && typeof v === 'object') scaleTimeRemap(v, f);
-              else if (v && typeof v === 'object') st.push(v);
-            }
-          }
-        }
-      }
-      function scaleLayerInOut(layer, f) {
-        if (typeof layer.ip === 'number') layer.ip *= f;
-        if (typeof layer.op === 'number') layer.op *= f;
-        if (typeof layer.st === 'number') layer.st *= f;
-        if (layer.tm) scaleTimeRemap(layer.tm, f);
-      }
-      function scaleLayersDeep(layers, f) {
-        if (!Array.isArray(layers)) return;
-        for (const ly of layers) {
-          scaleLayerInOut(ly, f);
-          if (Array.isArray(ly.layers)) scaleLayersDeep(ly.layers, f);
-        }
-      }
-      function scaleAllTimings(root, f) {
-        scaleAllKeyframeTs(root, f);
-        if (typeof root.ip === 'number') root.ip *= f;
-        if (typeof root.op === 'number') root.op *= f;
-        scaleLayersDeep(root.layers, f);
-        if (Array.isArray(root.assets)) {
-          for (const a of root.assets) {
-            if (Array.isArray(a.layers)) scaleLayersDeep(a.layers, f);
-            if (typeof a.ip === 'number') a.ip *= f;
-            if (typeof a.op === 'number') a.op *= f;
-            if (typeof a.st === 'number') a.st *= f;
-          }
-        }
-        scaleMarkers(root.markers, f);
-      }
-
-      /* ========= 预览（强制透明背景） ========= */
-      function sanitizeForPreview(src) { const o = deepClone(src); if (o && typeof o.bg !== 'undefined') delete o.bg; return o; }
-      function loadAnim(container, data) {
-        container.innerHTML = ''; container.style.background = 'transparent';
-        const anim = lottie.loadAnimation({ container, renderer: 'svg', loop: true, autoplay: true, animationData: sanitizeForPreview(data) });
-        anim.addEventListener('DOMLoaded', () => { try { const svg = anim.renderer?.svgElement; if (svg) svg.style.background = 'transparent'; } catch (_) { } });
-        return anim;
-      }
-      function refreshPlayers() {
-        if (originalObj) { if (anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
-        if (processedObj) { if (anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
-      }
-
-      // 读取 File 为 UTF-8 文本，带降级与明确报错
-async function readFileAsTextUTF8(file) {
-  if (!file) throw new Error('未选择文件');
-  // 优先走现代 API
-  if (typeof file.text === 'function') {
-    return await file.text();
-  }
-  // 旧浏览器降级
-  return await new Promise((resolve, reject) => {
-    try {
-      const r = new FileReader();
-      r.onerror = () => reject(new Error('读取失败：' + (r.error?.message || 'FileReader error')));
-      // 强制以 UTF-8 读取，避免某些平台编码误判
-      r.onload = () => resolve(String(r.result || ''));
-      if (r.readAsText.length >= 2) {
-        // 某些内核支持第二个参数 encoding
-        r.readAsText(file, 'utf-8');
-      } else {
-        r.readAsText(file);
-      }
-    } catch (e) {
-      reject(new Error('读取失败：' + e.message));
-    }
-  });
-}
-
-// 去 BOM + 允许常见注释（//、/* */）+ 修整空白
-function preprocessJsonText(raw) {
-  let s = String(raw ?? '');
-  // 去 BOM
-  if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
-  // 只在看起来是纯文本 JSON 时移除注释（避免错误删除字符串里的//）
-  // 简单实用的 JSONC 处理：去掉行注释与块注释
-  s = s
-    .replace(/^\s*\/\/.*$/gm, '')              // 行注释 //
-    .replace(/\/\*[\s\S]*?\*\//g, '')          // 块注释 /* */
-    .trim();
-  return s;
-}
-
-// 更明确的 JSON 解析报错
-function safeParseJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    // 给出更直观的提示
-    throw new Error('JSON 解析失败：' + (e.message || '未知错误'));
-  }
-}
-
-     async function handleFile(file){
-  showLoading('正在载入 JSON…');
-  try{
-    if (!file) throw new Error('未选择文件');
-
-    // 允许非 .json 的后缀（比如导出时忘改名），但给出提示
-    const looksJson = /\.json$/i.test(file.name);
-    if (!looksJson) showToast('提示：文件后缀不是 .json，也尝试解析');
-
-    // 读取文本（更健壮）
-    const raw = await readFileAsTextUTF8(file);
-
-    // 预处理：去 BOM、注释、首尾空白
-    const cleaned = preprocessJsonText(raw);
-
-    // 快速健诊：明显非 JSON
-    if (!cleaned || (cleaned[0] !== '{' && cleaned[0] !== '[')) {
-      throw new Error('文件内容不是有效的 JSON 文本（开头不是 { 或 [ ）');
-    }
-
-    // 解析
-    const obj = safeParseJson(cleaned);
-
-    // —— 到这里已成功 ——：再清旧状态，避免误删节点或事件
-    clearPreviousFileUI();
-
-    fileName = file.name || 'lottie.json';
-    originalObj = obj;
-    processedObj = null;
-
-    updateStats(originalObj);
-    refreshPlayers();
-
-    applyBtn.disabled = false;
-    downloadBtn.disabled = true;
-    hasApplied = false;
-
-    showToast('已载入：' + fileName);
-  }catch(err){
-    console.error('[handleFile]', err);
-    // 更友好的错误提示
-    showToast(err?.message || '文件处理失败或 JSON 解析失败');
-  }finally{
-    hideLoading();
-  }
-}
-
-      /* ========= 上传交互：点击 / 拖拽 ========= */
-      // 如果不是<label for=file>，才兜底触发
-      if (pickBtn && pickBtn.tagName !== 'LABEL') {
-        pickBtn.addEventListener('click', () => fileInput.click());
-      }
-
-      // 全局阻止浏览器接管拖拽（避免直接打开文件覆盖页面）
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-        window.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-      });
-
-      // 拖拽视觉反馈（计数避免抖动）
-      let dragCounter = 0;
-      uploadBox.addEventListener('dragenter', () => { dragCounter++; uploadBox.classList.add('dragover'); });
-      uploadBox.addEventListener('dragleave', () => { dragCounter = Math.max(0, dragCounter - 1); if (dragCounter === 0) uploadBox.classList.remove('dragover'); });
-      uploadBox.addEventListener('dragover', () => { /* 必须 preventDefault 才能触发 drop */ });
-
-      // 接收文件（拖拽）
-      uploadBox.addEventListener('drop', async e => {
-        dragCounter = 0; uploadBox.classList.remove('dragover');
-        const files = e.dataTransfer?.files;
-        if (!files || !files.length) { showToast('没有检测到文件'); return; }
-        const f = Array.from(files).find(x => /\.json$/i.test(x.name)) || files[0];
-        await handleFile(f);
-      });
-
-      // 选择文件（点击）
-      fileInput.addEventListener('change', async (e) => {
-        const f = e.target.files && e.target.files[0];
-        await handleFile(f);
-        // 清空以便两次选择同名文件也会触发 change
-        e.target.value = '';
-      });
-
-      /* ========= 模式选择 ========= */
-      modeGroup.addEventListener('click', e => {
-        const pill = e.target.closest('.pill');
-        if (!pill) return;
-        [...modeGroup.children].forEach(el => el.classList.remove('active'));
-        pill.classList.add('active');
-        activeMode = pill.dataset.mode;
-        // 切换模式后需要重新“应用”才能下载
-        hasApplied = false;
-        downloadBtn.disabled = true;
-      });
-// —— Loading 控制 —— //
-const loadingEl = document.getElementById('loading');
-const loadingTextEl = document.getElementById('loadingText');
-
-function showLoading(msg='处理中…'){
-  if (loadingTextEl) loadingTextEl.textContent = msg;
-  if (loadingEl){
-    loadingEl.hidden = false;            // ← 打开
-    loadingEl.setAttribute('aria-busy', 'true');
-  }
-  if (applyBtn) applyBtn.disabled = true;
-  if (downloadBtn) downloadBtn.disabled = true;
-}
-
-function hideLoading(){
-  if (loadingEl){
-    loadingEl.hidden = true;             // ← 关闭
-    loadingEl.setAttribute('aria-busy', 'false');
-  }
-  if (originalObj) applyBtn.disabled = false;
-  if (downloadBtn) downloadBtn.disabled = !hasApplied;
-}
-
-      // —— 清空旧文件与预览 —— //
-function clearPreviousFileUI(reason){
-  try {
-    if (anim1) { anim1.destroy(); anim1 = null; }
-    if (anim2) { anim2.destroy(); anim2 = null; }
-  } catch(_){}
-
-  stage1.innerHTML = '';
-  stage2.innerHTML = '';
-  statsEl.hidden = true;
-
-  originalObj = null;
-  processedObj = null;
-  hasApplied = false;
-  fileName = 'lottie.json';
-
-  if (fpsInp) fpsInp.value = '';
-  if (applyBtn) applyBtn.disabled = true;
-  if (downloadBtn) downloadBtn.disabled = true;
-
-  // 只清空文件选择器的值，不移除节点
-  if (fileInput) fileInput.value = '';
-
-  if (reason) showToast(reason);
-}
-
-/* 初始化时再保险关一次（如果某处意外打开了） */
-hideLoading();
-
-
-      /* ========= 下载工具 ========= */
-      function autoDownload(name, text) {
-        const blob = new Blob([text], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = name; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 800);
-      }
-
-      /* ========= “应用”逻辑：只计算并预览，不下载 ========= */
-      applyBtn.addEventListener('click', () => {
-        if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
-        const newFr = +fpsInp.value;
-        if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
-
-        const obj = deepClone(originalObj);
-        const oldFr = +obj.fr; const hadFr = Number.isFinite(oldFr) && oldFr > 0;
-        const ip = +obj.ip, op = +obj.op; const hadRange = Number.isFinite(ip) && Number.isFinite(op);
-        const factor = hadFr ? (newFr / oldFr) : 1;
-
-        try {
-          if (activeMode === 'just-fr') {
-            obj.fr = newFr;
-
-          } else if (activeMode === 'keep-duration') {
-            obj.fr = newFr;
-            if (hadRange) {
-              const secs = (op - ip) / (hadFr ? oldFr : newFr);
-              obj.op = ip + secs * newFr;
-            }
-            const rf = (hadFr ? (newFr / oldFr) : 1);
-            if (Array.isArray(obj.layers)) {
-              for (const ly of obj.layers) {
-                if (typeof ly.ip === 'number') ly.ip *= rf;
-                if (typeof ly.op === 'number') ly.op *= rf;
-                if (typeof ly.st === 'number') ly.st *= rf;
-              }
-            }
-            if (Array.isArray(obj.assets)) {
-              for (const a of obj.assets) {
-                if (Array.isArray(a.layers)) {
-                  for (const ly of a.layers) {
-                    if (typeof ly.ip === 'number') ly.ip *= rf;
-                    if (typeof ly.op === 'number') ly.op *= rf;
-                    if (typeof ly.st === 'number') ly.st *= rf;
-                  }
-                }
-              }
-            }
-            if (Array.isArray(obj.markers)) {
-              for (const m of obj.markers) {
-                if (typeof m.tm === 'number') m.tm *= rf;
-                if (typeof m.dr === 'number') m.dr *= rf;
-              }
-            }
-
-          } else { // 'scale-keyframes'
-            obj.fr = newFr;
-            if (hadFr) { scaleAllTimings(obj, factor); }
-            else { showToast('未检测到旧帧率，仅设置 fr'); }
-          }
-          // —— 新增：做兼容修复 —— //
-          normalizeForMobile(obj);
-          processedObj = obj;
-          updateStats(processedObj);  // 用修改后的数据更新统计
-          refreshPlayers();           // 右侧预览更新
-
-          hasApplied = true;
-          downloadBtn.disabled = false; // 允许下载
-          showToast('已应用，预览已更新');
-        } catch (e) {
-          console.error(e);
-          showToast('应用失败');
-        }
-      });
-
-      /* ========= “下载”逻辑：必须先“应用” ========= */
-      downloadBtn.addEventListener('click', () => {
-        if (!processedObj || !hasApplied) {
-          showToast('请先点击“应用”');
-          return;
-        }
-        const newFr = +fpsInp.value || processedObj.fr || 0;
-        const outName = (fileName || 'lottie.json')
-          .replace(/\.json$/i, '')
-          + `-fr${newFr}${activeMode === 'scale-keyframes' ? '-scaled' : activeMode === 'keep-duration' ? '-keepdur' : ''}.json`;
-
-        autoDownload(outName, JSON.stringify(processedObj, null, 2));
-        showToast('已下载：' + outName);
-      });
-
-      /* ========= 播放控制 ========= */
-      p1Play.addEventListener('click', () => anim1 && anim1.goToAndPlay(0, true));
-      p1Pause.addEventListener('click', () => anim1 && anim1.pause());
-      p1Stop.addEventListener('click', () => anim1 && anim1.stop());
-      p2Play.addEventListener('click', () => anim2 && anim2.goToAndPlay(0, true));
-      p2Pause.addEventListener('click', () => anim2 && anim2.pause());
-      p2Stop.addEventListener('click', () => anim2 && anim2.stop());
-    })();
-
-  </script>
-  <footer class="footer">
-    <a href="https://www.feishu.cn/invitation/page/add_contact/?token=ddahf0f4-5350-44be-abd2-956d2c0a577a&unique_id=ZYyg0Hbu5gpY66zPvQkbIA==" 
-     class="footer-content" target="_blank" rel="noopener noreferrer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <title>mail_send_line</title>
-       <g id="mail_send_line" fill="none">
+<footer class="footer">
+  <a id="contactLink"
+     class="footer-content"
+     href="https://www.feishu.cn/invitation/page/add_contact/?token=ddahf0f4-5350-44be-abd2-956d2c0a577a&unique_id=ZYyg0Hbu5gpY66zPvQkbIA=="
+     target="_blank" rel="noopener noreferrer">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+      <g fill="none">
         <path d="M24 0v24H0V0z"/>
         <path fill="currentColor" d="M20 4a2 2 0 0 1 1.995 1.85L22 6v12a2 2 0 0 1-1.85 1.995L20 20H4a2 2 0 0 1-1.995-1.85L2 18v-1h2v1h16V7.414l-6.94 6.94a1.5 1.5 0 0 1-2.007.103l-.114-.103L4 7.414V8H2V6a2 2 0 0 1 1.85-1.995L4 4zM6 13a1 1 0 1 1 0 2H1a1 1 0 1 1 0-2zm12.586-7H5.414L12 12.586zM5 10a1 1 0 0 1 .117 1.993L5 12H2a1 1 0 0 1-.117-1.993L2 10z"/>
       </g>
-      </svg>
-      <span>Contact Eric Sun</span>
-    </a>
-  </footer>
+    </svg>
+    <span>加我飞书好友</span>
+  </a>
+</footer>
 
 <!-- Loading 覆盖层 -->
 <div id="loading" class="loading-overlay" aria-live="polite" aria-busy="false" hidden>
@@ -1043,7 +302,523 @@ hideLoading();
   </div>
 </div>
 
+<div id="toast" class="toast"></div>
 
+<script>
+(()=>{ 
+  const $=s=>document.querySelector(s);
+
+  /* ========= 绑定元素 ========= */
+  const uploadBox=$('#uploadBox'), fileInput=$('#file');
+  const statsEl=$('#stats'), curFrEl=$('#curFr'), curIpEl=$('#curIp'), curOpEl=$('#curOp'), curSecEl=$('#curSec');
+  const stage1=$('#stage1'), stage2=$('#stage2');
+  const p1Play=$('#p1Play'), p1Pause=$('#p1Pause'), p1Stop=$('#p1Stop');
+  const p2Play=$('#p2Play'), p2Pause=$('#p2Pause'), p2Stop=$('#p2Stop');
+  const modeGroup=$('#modeGroup'), fpsInp=$('#targetFr');
+  const applyBtn=$('#applyBtn'), downloadBtn=$('#downloadBtn');
+
+  // PNG→WebP 开关与质量
+  const optPngToWebp = document.getElementById('optPngToWebp');
+  const optWebpQ = document.getElementById('optWebpQ');
+
+  // 其他压缩选项
+  const optMinify = document.getElementById('optMinify');
+  const optRemoveHidden = document.getElementById('optRemoveHidden');
+  const optDropNames = document.getElementById('optDropNames');
+  const optDropMarkers = document.getElementById('optDropMarkers');
+  const optPrecision = document.getElementById('optPrecision');
+
+  /* ========= 状态 ========= */
+  let activeMode='scale-keyframes';
+  let anim1=null, anim2=null;
+  let originalObj=null, processedObj=null;
+  let fileName='lottie.json';
+  let hasApplied=false;
+
+  /* ========= Toast ========= */
+  const toast=$('#toast'); 
+  function showToast(msg, ms=1600){ 
+    if(!toast) return;
+    toast.textContent=msg; 
+    toast.classList.add('show'); 
+    setTimeout(()=>toast.classList.remove('show'), ms); 
+  }
+
+  /* ========= Loading ========= */
+  const loadingEl = document.getElementById('loading');
+  const loadingTextEl = document.getElementById('loadingText');
+  function showLoading(msg='处理中…'){
+    if (loadingTextEl) loadingTextEl.textContent = msg;
+    if (loadingEl){ loadingEl.hidden = false; loadingEl.setAttribute('aria-busy','true'); }
+    if (applyBtn) applyBtn.disabled = true;
+    if (downloadBtn) downloadBtn.disabled = true;
+  }
+  function hideLoading(){
+    if (loadingEl){ loadingEl.hidden = true; loadingEl.setAttribute('aria-busy','false'); }
+    if (originalObj) applyBtn.disabled = false;
+    if (downloadBtn) downloadBtn.disabled = !hasApplied;
+  }
+  hideLoading(); // 初始确保隐藏
+
+  /* ========= 统计 ========= */
+  function updateStats(o){
+    try{
+      const fr=+o.fr, ip=+o.ip, op=+o.op;
+      curFrEl.textContent=Number.isFinite(fr)?fr:'-';
+      curIpEl.textContent=Number.isFinite(ip)?ip:'-';
+      curOpEl.textContent=Number.isFinite(op)?op:'-';
+      const sec=(Number.isFinite(fr)&&Number.isFinite(ip)&&Number.isFinite(op)&&fr>0)?(op-ip)/fr:NaN;
+      curSecEl.textContent=Number.isFinite(sec)?sec.toFixed(3):'-';
+      statsEl.hidden=false;
+    }catch{ statsEl.hidden=true; }
+  }
+  const deepClone=o=>(window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o)));
+
+  /* ========= Lottie 时间缩放工具 ========= */
+  function scaleMarkers(markers,f){ if(!Array.isArray(markers)) return; for(const m of markers){ if(typeof m.tm==='number') m.tm*=f; if(typeof m.dr==='number') m.dr*=f; } }
+  function scaleTimeRemap(tm,f){
+    if(!tm) return;
+    if(typeof tm.k==='number'){ tm.k*=f; return; }
+    if(Array.isArray(tm.k)){
+      for(const kf of tm.k){
+        if(kf && typeof kf.t==='number') kf.t*=f;
+        if(kf && kf.s!=null){
+          if(typeof kf.s==='number') kf.s*=f;
+          else if(Array.isArray(kf.s) && typeof kf.s[0]==='number') kf.s[0]*=f;
+        }
+        if(kf && kf.e!=null){
+          if(typeof kf.e==='number') kf.e*=f;
+          else if(Array.isArray(kf.e) && typeof kf.e[0]==='number') kf.e[0]*=f;
+        }
+      }
+    }
+  }
+  function scaleAllKeyframeTs(obj,f){
+    const st=[obj];
+    while(st.length){
+      const cur=st.pop();
+      if(!cur) continue;
+      if(Array.isArray(cur)){ for(const v of cur) st.push(v); continue; }
+      if(typeof cur==='object'){
+        if(Object.prototype.hasOwnProperty.call(cur,'t') && typeof cur.t==='number'){
+          const isKF=('s'in cur)||('e'in cur)||('h'in cur)||('i'in cur)||('o'in cur)||('hold'in cur)||('k'in cur);
+          if(isKF) cur.t *= f;
+        }
+        for(const k in cur){
+          const v=cur[k];
+          if(k==='tm' && v && typeof v==='object') scaleTimeRemap(v,f);
+          else if(v && typeof v==='object') st.push(v);
+        }
+      }
+    }
+  }
+  function scaleLayerInOut(layer,f){
+    if(typeof layer.ip==='number') layer.ip*=f;
+    if(typeof layer.op==='number') layer.op*=f;
+    if(typeof layer.st==='number') layer.st*=f;
+    if(layer.tm) scaleTimeRemap(layer.tm,f);
+  }
+  function scaleLayersDeep(layers,f){
+    if(!Array.isArray(layers)) return;
+    for(const ly of layers){
+      scaleLayerInOut(ly,f);
+      if(Array.isArray(ly.layers)) scaleLayersDeep(ly.layers,f);
+    }
+  }
+  function scaleAllTimings(root,f){
+    scaleAllKeyframeTs(root,f);
+    if(typeof root.ip==='number') root.ip*=f;
+    if(typeof root.op==='number') root.op*=f;
+    scaleLayersDeep(root.layers,f);
+    if(Array.isArray(root.assets)){
+      for(const a of root.assets){
+        if(Array.isArray(a.layers)) scaleLayersDeep(a.layers,f);
+        if(typeof a.ip==='number') a.ip*=f;
+        if(typeof a.op==='number') a.op*=f;
+        if(typeof a.st==='number') a.st*=f;
+      }
+    }
+    scaleMarkers(root.markers,f);
+  }
+
+  /* ========= 兼容修复 + 压缩工具 ========= */
+  function roundFrameInt(v){ return (typeof v==='number' && Number.isFinite(v)) ? Math.round(v) : v; }
+
+  function normalizeForMobile(root){
+    if (!root || typeof root !== 'object') return root;
+    const stack = [root];
+    while (stack.length){
+      const cur = stack.pop();
+      if (!cur || typeof cur !== 'object') continue;
+      if (cur.ty === 'gf') cur.t = 1; // 渐变填充
+      if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
+      if ('op' in cur) cur.op = roundFrameInt(cur.op);
+      if ('st' in cur) cur.st = roundFrameInt(cur.st);
+      for (const k in cur){
+        const v = cur[k];
+        if (v && typeof v === 'object') stack.push(v);
+      }
+    }
+    return root;
+  }
+
+  // 统一降精度：仅对“非整数的小数”生效（默认保留 3 位）
+  function roundFloats(o, precision=3){
+    if (!o || typeof o!=='object') return;
+    const p = Math.max(0, Math.min(8, precision|0));
+    const st=[o];
+    while(st.length){
+      const cur=st.pop();
+      if(Array.isArray(cur)){
+        for(let i=0;i<cur.length;i++){
+          const v=cur[i];
+          if (typeof v==='number' && !Number.isInteger(v)) cur[i]=+v.toFixed(p);
+          else if (v && typeof v==='object') st.push(v);
+        }
+      }else{
+        for(const k in cur){
+          const v=cur[k];
+          if (typeof v==='number' && !Number.isInteger(v)) cur[k]=+v.toFixed(p);
+          else if (v && typeof v==='object') st.push(v);
+        }
+      }
+    }
+  }
+
+  function roundFloat(n, p){
+    if (typeof n !== 'number' || !Number.isFinite(n)) return n;
+    if (Number.isInteger(n)) return n;
+    const f = Number(n.toFixed(Math.max(0, Math.min(8, p|0))));
+    return (Object.is(f, -0) ? 0 : f);
+  }
+  function compressLottieInPlace(root, {
+    precision = 3,
+    removeHiddenLayers = true,
+    dropNames = true,
+    dropMarkers = false
+  } = {}){
+    if (!root || typeof root !== 'object') return root;
+    function filterLayers(arr){
+      if (!Array.isArray(arr)) return arr;
+      return arr.filter(ly => !(removeHiddenLayers && ly && ly.hd === true));
+    }
+    if (Array.isArray(root.layers)) root.layers = filterLayers(root.layers);
+    if (Array.isArray(root.assets)){
+      for (const a of root.assets){
+        if (Array.isArray(a.layers)) a.layers = filterLayers(a.layers);
+      }
+    }
+    if (dropMarkers) delete root.markers;
+
+    const stack=[root];
+    while(stack.length){
+      const cur=stack.pop();
+      if (!cur || typeof cur!=='object') continue;
+      if ('nm' in cur && dropNames) delete cur.nm;
+      if ('mn' in cur && dropNames) delete cur.mn;
+
+      for (const k in cur){
+        const v = cur[k];
+        if (typeof v === 'number') cur[k] = roundFloat(v, precision);
+        else if (Array.isArray(v)){
+          for (let i=0;i<v.length;i++){
+            const vi=v[i];
+            if (typeof vi === 'number') v[i] = roundFloat(vi, precision);
+            else if (vi && typeof vi === 'object') stack.push(vi);
+          }
+        }else if (v && typeof v === 'object'){
+          stack.push(v);
+        }
+      }
+    }
+    return root;
+  }
+
+  function recompressToWebP(dataUrl, quality=0.8){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try{
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const q = Math.min(1, Math.max(0.1, Number(quality)||0.8));
+          const out = canvas.toDataURL('image/webp', q);
+          resolve(out);
+        }catch(e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+  function dataUrlBytes(dataUrl){
+    if (typeof dataUrl !== 'string') return 0;
+    const m = dataUrl.match(/^data:[^;]+;base64,([\s\S]+)/);
+    if (!m) return 0;
+    const b64 = m[1].replace(/=+$/, '');
+    return Math.floor(b64.length * 3 / 4);
+  }
+  async function convertEmbeddedPNGsToWebP(lottieObj, quality=0.8){
+    if (!lottieObj || !Array.isArray(lottieObj.assets)) return lottieObj;
+    const THRESHOLD = 0.98; // 新<=旧的98%才替换（至少省2%）
+    for (const asset of lottieObj.assets){
+      if (asset && typeof asset.p === 'string' && asset.p.startsWith('data:image/png;base64,')){
+        try{
+          const oldBytes = dataUrlBytes(asset.p);
+          const webpUrl = await recompressToWebP(asset.p, quality);
+          const newBytes = dataUrlBytes(webpUrl);
+          if (newBytes > 0 && oldBytes > 0 && newBytes <= oldBytes * THRESHOLD) {
+            asset.p = webpUrl;
+            asset.e = 1;
+          }
+        }catch(err){
+          console.warn('[PNG→WebP] 失败，跳过：', err);
+        }
+      }
+    }
+    return lottieObj;
+  }
+
+  /* ========= 预览（透明背景） ========= */
+  function sanitizeForPreview(src){ const o=deepClone(src); if(o && typeof o.bg!=='undefined') delete o.bg; return o; }
+  function loadAnim(container,data){
+    container.innerHTML=''; container.style.background='transparent';
+    const anim=lottie.loadAnimation({container, renderer:'svg', loop:true, autoplay:true, animationData:sanitizeForPreview(data)});
+    anim.addEventListener('DOMLoaded',()=>{ try{ const svg=anim.renderer?.svgElement; if(svg) svg.style.background='transparent'; }catch(_){} });
+    return anim;
+  }
+  function refreshPlayers(){
+    if(originalObj){ if(anim1) anim1.destroy(); anim1=loadAnim(stage1, originalObj); }
+    if(processedObj){ if(anim2) anim2.destroy(); anim2=loadAnim(stage2, processedObj); }
+  }
+
+  /* ========= 清空旧文件 ========= */
+  function clearPreviousFileUI(reason){
+    try{ if (anim1) { anim1.destroy(); anim1=null; } if (anim2) { anim2.destroy(); anim2=null; } }catch(_){}
+    stage1.innerHTML = '';
+    stage2.innerHTML = '';
+    statsEl.hidden = true;
+    originalObj = null;
+    processedObj = null;
+    hasApplied = false;
+    fileName = 'lottie.json';
+    if (fpsInp) fpsInp.value = '';
+    if (applyBtn) applyBtn.disabled = true;
+    if (downloadBtn) downloadBtn.disabled = true;
+    if (fileInput) fileInput.value = '';
+    if (reason) showToast(reason);
+  }
+
+  /* ========= 文件读取 ========= */
+  async function readFileAsTextUTF8(file) {
+    if (!file) throw new Error('未选择文件');
+    if (typeof file.text === 'function') return await file.text();
+    return await new Promise((resolve, reject) => {
+      try {
+        const r = new FileReader();
+        r.onerror = () => reject(new Error('读取失败：' + (r.error?.message || 'FileReader error')));
+        r.onload  = () => resolve(String(r.result || ''));
+        if (r.readAsText.length >= 2) r.readAsText(file, 'utf-8'); else r.readAsText(file);
+      } catch (e) { reject(new Error('读取失败：' + e.message)); }
+    });
+  }
+  function preprocessJsonText(raw) {
+    let s = String(raw ?? '');
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+    s = s.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    return s;
+  }
+  function safeParseJson(text) {
+    try { return JSON.parse(text); }
+    catch (e) { throw new Error('JSON 解析失败：' + (e.message || '未知错误')); }
+  }
+
+  /* ========= 统一处理文件 ========= */
+  async function handleFile(file){
+    showLoading('正在载入 JSON…');
+    try{
+      if (!file) throw new Error('未选择文件');
+      const raw = await readFileAsTextUTF8(file);
+      const cleaned = preprocessJsonText(raw);
+      if (!cleaned || (cleaned[0] !== '{' && cleaned[0] !== '[')) throw new Error('文件内容不是有效 JSON（开头不是 { 或 [ ）');
+
+      const obj = safeParseJson(cleaned);
+      clearPreviousFileUI();
+
+      fileName = file.name || 'lottie.json';
+      originalObj = obj;
+      processedObj = null;
+
+      updateStats(originalObj);
+      refreshPlayers();
+
+      applyBtn.disabled = false;
+      downloadBtn.disabled = true;
+      hasApplied = false;
+
+      showToast('已载入：' + fileName);
+    }catch(err){
+      console.error('[handleFile]', err);
+      showToast(err?.message || '文件处理失败或 JSON 解析失败');
+    }finally{
+      hideLoading();
+    }
+  }
+
+  /* ========= 拦截默认拖拽 ========= */
+  ['dragenter','dragover','dragleave','drop'].forEach(evt=>{
+    window.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, {passive:false});
+  });
+  let dragCounter = 0;
+  uploadBox.addEventListener('dragenter', () => { dragCounter++; uploadBox.classList.add('dragover'); });
+  uploadBox.addEventListener('dragleave', () => { dragCounter = Math.max(0, dragCounter-1); if(dragCounter===0) uploadBox.classList.remove('dragover'); });
+  uploadBox.addEventListener('dragover', () => {});
+  uploadBox.addEventListener('drop', async e => {
+    dragCounter = 0;
+    uploadBox.classList.remove('dragover');
+    const files = e.dataTransfer?.files;
+    if(!files || !files.length){ showToast('没有检测到文件'); return; }
+    const f = Array.from(files).find(x=>/\.json$/i.test(x.name)) || files[0];
+    await handleFile(f);
+  });
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    await handleFile(f);
+    e.target.value = '';
+  });
+
+  /* ========= 模式选择 ========= */
+  modeGroup.addEventListener('click', e=>{
+    const pill=e.target.closest('.pill');
+    if(!pill) return;
+    [...modeGroup.children].forEach(el=>el.classList.remove('active'));
+    pill.classList.add('active');
+    activeMode=pill.dataset.mode;
+    hasApplied=false;
+    downloadBtn.disabled=true;
+  });
+
+  /* ========= 下载工具 ========= */
+  function autoDownload(name,text){
+    const blob=new Blob([text],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),800);
+  }
+
+  /* ========= “应用”：计算 + 兼容修复 + 降精度 + 可选深度压缩 ========= */
+  applyBtn.addEventListener('click', async () => {
+    if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
+    const newFr = +fpsInp.value;
+    if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
+
+    showLoading('正在应用修改…');
+    try {
+      const obj = deepClone(originalObj);
+      const oldFr = +obj.fr; const hadFr = Number.isFinite(oldFr) && oldFr > 0;
+      const ip = +obj.ip, op = +obj.op; const hadRange = Number.isFinite(ip) && Number.isFinite(op);
+
+      if (activeMode === 'just-fr') {
+        obj.fr = newFr;
+      } else if (activeMode === 'keep-duration') {
+        obj.fr = newFr;
+        if (hadRange) {
+          const secs = (op - ip) / (hadFr ? oldFr : newFr);
+          obj.op = ip + secs * newFr;
+        }
+        const rf = (hadFr ? (newFr / oldFr) : 1);
+        if (Array.isArray(obj.layers)) {
+          for (const ly of obj.layers) {
+            if (typeof ly.ip === 'number') ly.ip *= rf;
+            if (typeof ly.op === 'number') ly.op *= rf;
+            if (typeof ly.st === 'number') ly.st *= rf;
+          }
+        }
+        if (Array.isArray(obj.assets)) {
+          for (const a of obj.assets) {
+            if (Array.isArray(a.layers)) {
+              for (const ly of a.layers) {
+                if (typeof ly.ip === 'number') ly.ip *= rf;
+                if (typeof ly.op === 'number') ly.op *= rf;
+                if (typeof ly.st === 'number') ly.st *= rf;
+              }
+            }
+          }
+        }
+        if (Array.isArray(obj.markers)) {
+          for (const m of obj.markers) {
+            if (typeof m.tm === 'number') m.tm *= rf;
+            if (typeof m.dr === 'number') m.dr *= rf;
+          }
+        }
+      } else { // 'scale-keyframes'
+        obj.fr = newFr;
+        if (hadFr) { scaleAllTimings(obj, newFr / oldFr); }
+        else { showToast('未检测到旧帧率，仅设置 fr'); }
+      }
+
+      // 兼容修复（gf.t=1 + ip/op/st 取整）
+      normalizeForMobile(obj);
+
+      // 统一降精度（默认保留 3 位）：即使未勾选“启用压缩”也执行，避免体积暴涨
+      roundFloats(obj, Math.max(0, Math.min(6, +optPrecision.value || 3)));
+
+      // 可选：深度压缩（删隐藏/名字/markers + 数值降精度）
+      if (optMinify && optMinify.checked) {
+        compressLottieInPlace(obj, {
+          precision: Math.max(0, Math.min(6, +optPrecision.value || 3)),
+          removeHiddenLayers: !!(optRemoveHidden && optRemoveHidden.checked),
+          dropNames: !!(optDropNames && optDropNames.checked),
+          dropMarkers: !!(optDropMarkers && optDropMarkers.checked),
+        });
+      }
+
+      // 可选：把内嵌 PNG 转 WebP（仅在更小才替换）
+      if (optPngToWebp && optPngToWebp.checked) {
+        showLoading('正在压缩位图（PNG→WebP）…');
+        const q = Math.min(1, Math.max(0.1, parseFloat(optWebpQ.value)||0.8));
+        await convertEmbeddedPNGsToWebP(obj, q);
+      }
+
+      processedObj = obj;
+      updateStats(processedObj);
+      refreshPlayers();
+
+      hasApplied = true;
+      downloadBtn.disabled = false;
+      showToast('已应用完成' + (optPngToWebp?.checked ? '（位图已压缩为 WebP）' : ''));
+    } catch (e) {
+      console.error(e);
+      showToast('应用失败');
+    } finally {
+      hideLoading();
+    }
+  });
+
+  /* ========= “下载”：始终最小化输出 ========= */
+  downloadBtn.addEventListener('click', () => {
+    if (!processedObj || !hasApplied) { showToast('请先点击“应用”'); return; }
+    const newFr = +fpsInp.value || processedObj.fr || 0;
+    const outName = (fileName || 'lottie.json')
+      .replace(/\.json$/i, '')
+      + `-fr${newFr}${activeMode==='scale-keyframes'?'-scaled':activeMode==='keep-duration'?'-keepdur':''}.json`;
+
+    // 强制最小化（无缩进空白），避免体积因格式化而变大
+    autoDownload(outName, JSON.stringify(processedObj));
+    showToast('已下载：' + outName);
+  });
+
+  /* ========= 播放控制 ========= */
+  p1Play.addEventListener('click',()=>anim1&&anim1.goToAndPlay(0,true));
+  p1Pause.addEventListener('click',()=>anim1&&anim1.pause());
+  p1Stop.addEventListener('click',()=>anim1&&anim1.stop());
+  p2Play.addEventListener('click',()=>anim2&&anim2.goToAndPlay(0,true));
+  p2Pause.addEventListener('click',()=>anim2&&anim2.pause());
+  p2Stop.addEventListener('click',()=>anim2&&anim2.stop());
+})();
+</script>
 </body>
-
 </html>
