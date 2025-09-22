@@ -644,6 +644,36 @@ function normalizeForMobile(root){
   return root;
 }
 
+      // === 统一数值降精度（仅对“非整数的小数”生效）===
+// 默认保留 3 位；不改整数；不改对象结构
+function roundFloats(root, precision = 3){
+  if (!root || typeof root !== 'object') return;
+  const p = Math.max(0, Math.min(8, precision|0));
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (Array.isArray(cur)){
+      for (let i=0;i<cur.length;i++){
+        const v = cur[i];
+        if (typeof v === 'number' && !Number.isInteger(v)){
+          cur[i] = +v.toFixed(p);
+        }else if (v && typeof v === 'object'){
+          stack.push(v);
+        }
+      }
+    }else{
+      for (const k in cur){
+        const v = cur[k];
+        if (typeof v === 'number' && !Number.isInteger(v)){
+          cur[k] = +v.toFixed(p);
+        }else if (v && typeof v === 'object'){
+          stack.push(v);
+        }
+      }
+    }
+  }
+}
+
 
       /* ========= Lottie 时间缩放工具 ========= */
       function scaleMarkers(markers, f) { if (!Array.isArray(markers)) return; for (const m of markers) { if (typeof m.tm === 'number') m.tm *= f; if (typeof m.dr === 'number') m.dr *= f; } }
@@ -981,8 +1011,18 @@ hideLoading();
             if (hadFr) { scaleAllTimings(obj, factor); }
             else { showToast('未检测到旧帧率，仅设置 fr'); }
           }
+
+            // —— 新增：做兼容修复 —— //
+  normalizeForMobile(obj);
+  roundFloats(obj, 3); // 统一把非整数的小数保留 3 位
+  processedObj = obj;
+  updateStats(processedObj);  // 用修改后的数据更新统计
+
+          
           // —— 新增：做兼容修复 —— //
           normalizeForMobile(obj);
+          roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
+
           processedObj = obj;
           updateStats(processedObj);  // 用修改后的数据更新统计
           refreshPlayers();           // 右侧预览更新
