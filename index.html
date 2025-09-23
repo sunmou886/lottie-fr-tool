@@ -646,6 +646,12 @@ function normalizeForMobile(root){
   return root;
 }
 
+// 只把“关键帧对象”的 t 当作时间：同时具备 t 和 s/e/i/o/h 任一即可
+function isKeyframeTime(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  if (!('t' in obj)) return false;
+  return ('s' in obj) || ('e' in obj) || ('i' in obj) || ('o' in obj) || ('h' in obj);
+}
 
       function roundFloats(root, precision=3){
   if (!root || typeof root !== 'object') return;
@@ -732,10 +738,14 @@ function roundFloats(root, precision = 3){
           if (!cur) continue;
           if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
           if (typeof cur === 'object') {
-            if (Object.prototype.hasOwnProperty.call(cur, 't') && typeof cur.t === 'number') {
-              const isKF = ('s' in cur) || ('e' in cur) || ('h' in cur) || ('i' in cur) || ('o' in cur) || ('hold' in cur) || ('k' in cur);
-              if (isKF) cur.t *= f;
-            }
+            if (typeof cur.t === 'number') {
+  // 只在“关键帧对象”才缩放 t
+  const isKF = ('s' in cur) || ('e' in cur) || ('i' in cur) || ('o' in cur) || ('h' in cur) || ('hold' in cur) || ('k' in cur);
+  if (isKF) {
+    cur.t *= f;
+  }
+}
+
             for (const k in cur) {
               const v = cur[k];
               if (k === 'tm' && v && typeof v === 'object') scaleTimeRemap(v, f);
@@ -1120,7 +1130,8 @@ hideLoading();
           .replace(/\.json$/i, '')
           + `-fr${newFr}${activeMode === 'scale-keyframes' ? '-scaled' : activeMode === 'keep-duration' ? '-keepdur' : ''}.json`;
 
-        autoDownload(outName, JSON.stringify(processedObj, null, 2));
+        autoDownload(outName, JSON.stringify(processedObj));
+
         showToast('已下载：' + outName);
       });
 
