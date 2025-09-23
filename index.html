@@ -646,6 +646,35 @@ function normalizeForMobile(root){
   return root;
 }
 
+
+      function roundFloats(root, precision=3){
+  if (!root || typeof root !== 'object') return;
+  const p = Math.max(0, Math.min(8, precision|0));
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (Array.isArray(cur)){
+      for (let i=0;i<cur.length;i++){
+        const v = cur[i];
+        if (typeof v==='number' && !Number.isInteger(v)){
+          cur[i] = +v.toFixed(p);
+        }else if (v && typeof v==='object'){
+          stack.push(v);
+        }
+      }
+    }else{
+      for (const k in cur){
+        const v = cur[k];
+        if (typeof v==='number' && !Number.isInteger(v)){
+          cur[k] = +v.toFixed(p);
+        }else if (v && typeof v==='object'){
+          stack.push(v);
+        }
+      }
+    }
+  }
+}
+
       // === 统一数值降精度（仅对“非整数的小数”生效）===
 // 默认保留 3 位；不改整数；不改对象结构
 function roundFloats(root, precision = 3){
