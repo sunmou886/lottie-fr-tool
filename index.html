@@ -549,6 +549,8 @@
         <div class="pill active" data-mode="scale-keyframes">缩放所有关键帧时间（推荐）</div>
         <div class="pill" data-mode="keep-duration">保持整体时长</div>
         <div class="pill" data-mode="just-fr">仅修改帧率</div>
+          <div class="pill" data-mode="scale-inout">只缩放入出点（保留关键帧t）</div>
+
       </div>
 
       <div class="section-title" style="margin-top:24px;">目标帧率</div>
@@ -1006,6 +1008,48 @@ hideLoading();
               }
             }
 
+} else if (activeMode === 'scale-inout') {
+  // 只缩放入出点（保留关键帧t）
+  obj.fr = newFr;
+  if (hadFr) {
+    const f = newFr / oldFr; // 让总时长保持一致：秒 = (op-ip)/fr
+    // 仅缩放 ip/op/st（不动关键帧 t）
+    if (typeof obj.ip === 'number') obj.ip *= f;
+    if (typeof obj.op === 'number') obj.op *= f;
+    if (Array.isArray(obj.layers)) {
+      for (const ly of obj.layers) {
+        if (typeof ly.ip === 'number') ly.ip *= f;
+        if (typeof ly.op === 'number') ly.op *= f;
+        if (typeof ly.st === 'number') ly.st *= f;
+      }
+    }
+    if (Array.isArray(obj.assets)) {
+      for (const a of obj.assets) {
+        if (Array.isArray(a.layers)) {
+          for (const ly of a.layers) {
+            if (typeof ly.ip === 'number') ly.ip *= f;
+            if (typeof ly.op === 'number') ly.op *= f;
+            if (typeof ly.st === 'number') ly.st *= f;
+          }
+        }
+        if (typeof a.ip === 'number') a.ip *= f;
+        if (typeof a.op === 'number') a.op *= f;
+        if (typeof a.st === 'number') a.st *= f;
+      }
+    }
+    // markers 也按帧缩放，保持相对时序
+    if (Array.isArray(obj.markers)) {
+      for (const m of obj.markers) {
+        if (typeof m.tm === 'number') m.tm *= f;
+        if (typeof m.dr === 'number') m.dr *= f;
+      }
+    }
+  } else {
+    // 没检测到旧 fr，只设置新的 fr（不再缩放任何时间）
+    showToast('未检测到旧帧率，仅设置 fr（关键帧已保留）');
+  }
+
+            
           } else { // 'scale-keyframes'
             obj.fr = newFr;
             if (hadFr) { scaleAllTimings(obj, factor); }
