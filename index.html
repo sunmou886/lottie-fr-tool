@@ -629,8 +629,8 @@ function normalizeForMobile(root){
     const cur = stack.pop();
     if (!cur || typeof cur !== 'object') continue;
 
-    // 1) 渐变填充
-    if (cur.ty === 'gf') cur.t = 1;
+   // 1) 渐变填充 —— 保持原始 t（1=线性，2=径向），不要强制改动
+// if (cur.ty === 'gf') cur.t = 1;
 
     // 2) 帧边界取整
     if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
