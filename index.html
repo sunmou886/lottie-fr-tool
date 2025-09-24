@@ -653,6 +653,61 @@ function isKeyframeTime(obj) {
   return ('s' in obj) || ('e' in obj) || ('i' in obj) || ('o' in obj) || ('h' in obj);
 }
 
+// 计算对象里出现的最大关键帧时间（仅统计真正关键帧的 t）
+function getMaxKeyT(root) {
+  let maxT = 0;
+  const st = [root];
+  while (st.length) {
+    const cur = st.pop();
+    if (!cur || typeof cur !== 'object') continue;
+    if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
+    if (typeof cur.t === 'number') {
+      const isKF = ('s' in cur) || ('e' in cur) || ('i' in cur) || ('o' in cur) || ('h' in cur) || ('hold' in cur) || ('k' in cur);
+      if (isKF && cur.t > maxT) maxT = cur.t;
+    }
+    for (const k in cur) {
+      const v = cur[k];
+      if (v && typeof v === 'object') st.push(v);
+    }
+  }
+  return Math.ceil(maxT);
+}
+
+// 缩放完成后：确保各级 op 覆盖到 maxKeyT+1（只扩不缩）
+function ensureOpCoversKeys(root){
+  if (!root || typeof root !== 'object') return;
+
+  // 顶层合成
+  const compMax = getMaxKeyT(root);
+  if (typeof root.op === 'number') root.op = Math.max(Math.ceil(root.op), compMax + 1);
+  else root.op = compMax + 1;
+
+  // 各层/子合成
+  const st = [root];
+  while (st.length){
+    const cur = st.pop();
+    if (!cur || typeof cur !== 'object') continue;
+    if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
+
+    if (Array.isArray(cur.layers)) {
+      for (const ly of cur.layers) {
+        const lyMax = getMaxKeyT(ly);
+        if (typeof ly.op === 'number') ly.op = Math.max(Math.ceil(ly.op), lyMax + 1);
+        else ly.op = lyMax + 1;
+        // 旧版更稳：确保边界为整数
+        if (typeof ly.ip === 'number') ly.ip = Math.floor(ly.ip);
+        if (typeof ly.st === 'number') ly.st = Math.floor(ly.st);
+      }
+    }
+    for (const k in cur){
+      const v = cur[k];
+      if (v && typeof v === 'object') st.push(v);
+    }
+  }
+}
+
+
+      
       function roundFloats(root, precision=3){
   if (!root || typeof root !== 'object') return;
   const p = Math.max(0, Math.min(8, precision|0));
@@ -1137,11 +1192,16 @@ hideLoading();
   }
 
             
-          } else { // 'scale-keyframes'
-            obj.fr = newFr;
-            if (hadFr) { scaleAllTimings(obj, factor); }
-            else { showToast('未检测到旧帧率，仅设置 fr'); }
-          }
+         } else { // 'scale-keyframes'
+  obj.fr = newFr;
+  if (hadFr) {
+    scaleAllTimings(obj, newFr / oldFr);
+    // 新增：缩放完成后，确保 op 覆盖所有关键帧（旧版 Lottie 会严格裁剪到 op）
+    ensureOpCoversKeys(obj);
+  } else {
+    showToast('未检测到旧帧率，仅设置 fr');
+  }
+}
 
 
 
