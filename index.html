@@ -711,6 +711,53 @@ function roundFloats(root, precision = 3){
   }
 }
 
+      // —— PNG → WebP（仅当更小时才替换）—— //
+function recompressToWebP(dataUrl, quality = 0.8){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const q = Math.min(1, Math.max(0.1, Number(quality)||0.8));
+        const out = canvas.toDataURL('image/webp', q);
+        resolve(out);
+      }catch(e){ reject(e); }
+    };
+    img.onerror = reject;
+    img.src = dataUrl; // data:URL 无跨域问题
+  });
+}
+function dataUrlBytes(dataUrl){
+  if (typeof dataUrl !== 'string') return 0;
+  const m = dataUrl.match(/^data:[^;]+;base64,([\s\S]+)/);
+  if (!m) return 0;
+  const b64 = m[1].replace(/=+$/, '');
+  return Math.floor(b64.length * 3 / 4);
+}
+async function convertEmbeddedPNGsToWebPIfSmaller(lottieObj, quality = 0.8){
+  if (!lottieObj || !Array.isArray(lottieObj.assets)) return lottieObj;
+  const THRESHOLD = 0.98; // 新 ≤ 旧 * 0.98（至少省 2%）才替换
+  for (const asset of lottieObj.assets){
+    if (asset && typeof asset.p === 'string' && asset.p.startsWith('data:image/png;base64,')){
+      try{
+        const oldBytes = dataUrlBytes(asset.p);
+        const webp = await recompressToWebP(asset.p, quality);
+        const newBytes = dataUrlBytes(webp);
+        if (newBytes > 0 && oldBytes > 0 && newBytes <= oldBytes * THRESHOLD){
+          asset.p = webp;
+          asset.e = 1; // 保持 embedded
+        }
+      }catch(err){
+        console.warn('[PNG→WebP] 跳过：', err);
+      }
+    }
+  }
+  return lottieObj;
+}
+
 
       /* ========= Lottie 时间缩放工具 ========= */
       function scaleMarkers(markers, f) { if (!Array.isArray(markers)) return; for (const m of markers) { if (typeof m.tm === 'number') m.tm *= f; if (typeof m.dr === 'number') m.dr *= f; } }
@@ -1001,7 +1048,8 @@ hideLoading();
       }
 
       /* ========= “应用”逻辑：只计算并预览，不下载 ========= */
-      applyBtn.addEventListener('click', () => {
+     applyBtn.addEventListener('click', async () => {
+
         if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
         const newFr = +fpsInp.value;
         if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
@@ -1095,16 +1143,14 @@ hideLoading();
             else { showToast('未检测到旧帧率，仅设置 fr'); }
           }
 
-            // —— 新增：做兼容修复 —— //
-  normalizeForMobile(obj);
-  roundFloats(obj, 3); // 统一把非整数的小数保留 3 位
-  processedObj = obj;
-  updateStats(processedObj);  // 用修改后的数据更新统计
+
 
           
           // —— 新增：做兼容修复 —— //
           normalizeForMobile(obj);
           roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
+          await convertEmbeddedPNGsToWebPIfSmaller(obj, 0.8); // PNG→WebP（仅更小时替换）
+
 
           processedObj = obj;
           updateStats(processedObj);  // 用修改后的数据更新统计
