@@ -652,6 +652,57 @@ function isKeyframeTime(obj) {
   if (!('t' in obj)) return false;
   return ('s' in obj) || ('e' in obj) || ('i' in obj) || ('o' in obj) || ('h' in obj) || ('hold' in obj) || ('k' in obj);
 }
+// —— PNG → WebP（仅当更小时才替换） —— //
+// 把 dataURL 的 PNG 重编码为 WebP（quality: 0.1 ~ 1.0）
+function recompressToWebP(dataUrl, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const q = Math.min(1, Math.max(0.1, Number(quality) || 0.8));
+        const out = canvas.toDataURL('image/webp', q);
+        resolve(out);
+      } catch (e) { reject(e); }
+    };
+    img.onerror = reject;
+    img.src = dataUrl; // dataURL 无 CORS 问题
+  });
+}
+
+// 估算 dataURL 的字节数
+function dataUrlBytes(dataUrl) {
+  if (typeof dataUrl !== 'string') return 0;
+  const m = dataUrl.match(/^data:[^;]+;base64,([\s\S]+)/);
+  if (!m) return 0;
+  const b64 = m[1].replace(/=+$/, '');
+  return Math.floor(b64.length * 3 / 4);
+}
+
+// 扫描 assets，把内嵌 PNG 改为 WebP（仅更小才替换；阈值默认 2%）
+async function convertEmbeddedPNGsToWebPIfSmaller(lottieObj, quality = 0.8, threshold = 0.98) {
+  if (!lottieObj || !Array.isArray(lottieObj.assets)) return lottieObj;
+  for (const a of lottieObj.assets) {
+    if (a && typeof a.p === 'string' && a.p.startsWith('data:image/png;base64,')) {
+      try {
+        const oldBytes = dataUrlBytes(a.p);
+        const webp = await recompressToWebP(a.p, quality);
+        const newBytes = dataUrlBytes(webp);
+        // 仅当新文件 ≤ 旧文件 * 阈值（默认更小 2% 以上）时替换
+        if (newBytes > 0 && oldBytes > 0 && newBytes <= Math.floor(oldBytes * threshold)) {
+          a.p = webp;
+          a.e = 1; // 保持 embedded
+        }
+      } catch (err) {
+        console.warn('[PNG→WebP] 跳过：', err);
+      }
+    }
+  }
+  return lottieObj;
+}
 
 // 修正渐变类型：gf.t 只能是 1(线性) 或 2(径向)；如果变成小数，回退到 1
 function fixGradientType(root){
@@ -1231,6 +1282,7 @@ hideLoading();
       /* ========= “应用”逻辑：只计算并预览，不下载 ========= */
      applyBtn.addEventListener('click', async () => {
 
+
         if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
         const newFr = +fpsInp.value;
         if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
@@ -1339,7 +1391,13 @@ hideLoading();
           normalizeForMobile(obj);
           roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
           
-          await revertEmbeddedWebPToPNG(obj); // iOS：把任何嵌入的 webp 转回 png
+          // 仅当勾选“PNG→WebP”时启用；且只在更小才替换
+if (typeof optPngToWebp !== 'undefined' ? optPngToWebp?.checked : true) {
+  showLoading('正在压缩位图（PNG→WebP）…');
+  const q = Math.min(1, Math.max(0.1, parseFloat(optWebpQ?.value) || 0.8));
+  await convertEmbeddedPNGsToWebPIfSmaller(obj, q, 0.98);
+}
+
 
 
           processedObj = obj;
