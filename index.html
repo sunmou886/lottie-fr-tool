@@ -1283,6 +1283,7 @@ hideLoading();
      applyBtn.addEventListener('click', async () => {
 
 
+
         if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
         const newFr = +fpsInp.value;
         if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
@@ -1391,27 +1392,27 @@ hideLoading();
           normalizeForMobile(obj);
           roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
           
-          // 仅当勾选“PNG→WebP”时启用；且只在更小才替换
-if (typeof optPngToWebp !== 'undefined' ? optPngToWebp?.checked : true) {
-  showLoading('正在压缩位图（PNG→WebP）…');
-  const q = Math.min(1, Math.max(0.1, parseFloat(optWebpQ?.value) || 0.8));
-  await convertEmbeddedPNGsToWebPIfSmaller(obj, q, 0.98);
+         // —— PNG→WebP（仅更小时替换）——
+// 说明：为避免未声明变量导致的 ReferenceError，这里每次在块内就地取 DOM；
+// 若页面没有开关，默认启用（你也可以把默认 true 改为 false）。
+{
+  const elChk = document.getElementById('optPngToWebp');
+  const elQ   = document.getElementById('optWebpQ');
+  const enabled = elChk ? !!elChk.checked : true;                 // ← 没有控件也不报错
+  const q = elQ ? Math.min(1, Math.max(0.1, parseFloat(elQ.value) || 0.8)) : 0.8;
+
+  if (enabled) {
+    showLoading('正在压缩位图（PNG→WebP）…');
+    try {
+      await convertEmbeddedPNGsToWebPIfSmaller(obj, q, 0.98);     // 阈值：至少小 2% 才替换
+    } catch (err) {
+      console.warn('[PNG→WebP] 处理失败，已跳过：', err);
+    } finally {
+      hideLoading();
+    }
+  }
 }
 
-
-
-          processedObj = obj;
-          updateStats(processedObj);  // 用修改后的数据更新统计
-          refreshPlayers();           // 右侧预览更新
-
-          hasApplied = true;
-          downloadBtn.disabled = false; // 允许下载
-          showToast('已应用，预览已更新');
-        } catch (e) {
-          console.error(e);
-          showToast('应用失败');
-        }
-      });
 
       /* ========= “下载”逻辑：必须先“应用” ========= */
       downloadBtn.addEventListener('click', () => {
