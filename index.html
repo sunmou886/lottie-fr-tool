@@ -5,131 +5,137 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lottie 动画修复与帧率修改工具</title>
-  <meta name="description" content="修复Lottie宽高异常，自由修改动画帧率并支持预览">
   
   <style>
     :root {
       --bg: #f7f6f3;
       --card: #ffffff;
       --text: #2b2b2b;
-      --muted: #9a9a95;
-      --line: #e9e7e2;
       --accent: #46473E;
-      --accent-press: #2f2b26;
-      --pill-active: #d8e7b9;
-      --pill-text: #40443a;
-      --shadow: 0 2px 12px rgba(0, 0, 0, .05);
+      --line: #e9e7e2;
     }
 
     html, body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font: 14px/1.6 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Loading 覆盖层 */
+    /* --- Loading 遮罩层 (核心修复) --- */
     .loading-overlay {
-      position: fixed; inset: 0; z-index: 9998;
-      background: rgba(255, 255, 255, .6);
-      display: flex; align-items: center; justify-content: center;
-      backdrop-filter: saturate(180%) blur(3px);
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: saturate(180%) blur(4px);
+      /* 默认是 flex，但在 hidden 时必须隐藏 */
+      display: flex; 
+      align-items: center; justify-content: center;
+      transition: opacity 0.3s;
     }
+    
+    /* 🔥【关键修复】强制隐藏属性生效，覆盖 display: flex */
+    .loading-overlay[hidden] {
+      display: none !important;
+    }
+
     .loading-box {
-      background: #fff; border: 1px solid #ece9e2; border-radius: 16px;
-      padding: 16px 18px; display: flex; align-items: center; gap: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+      background: #fff; padding: 16px 24px; border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      display: flex; align-items: center; gap: 12px;
     }
     .spinner {
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 2px solid #d9d7d2; border-top-color: #3f3b35;
-      animation: spin .8s linear infinite;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2.5px solid #e1e1e1; border-top-color: #333;
+      animation: spin 0.8s linear infinite;
     }
-    .loading-text { color: #3f3b35; font-weight: 700; font-size: 14px; }
+    .loading-text { font-weight: 600; font-size: 14px; color: #333; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* 布局类 */
-    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
-    .title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 24px; margin-bottom: 24px; color: #242424; }
-    .title-icon { width: 48px; height: 48px; object-fit: contain; }
+    /* --- 布局样式 --- */
+    .wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    
+    .card { 
+      background: #fff; border-radius: 24px; padding: 24px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;
+    }
 
-    .card { background: var(--card); border-radius: 28px; box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; }
-
+    /* 上传区 */
     .upload-box {
-      border: 1.5px dashed var(--line); border-radius: 16px; height: 180px;
-      display: flex; align-items: center; justify-content: center; position: relative;
-      transition: all 0.2s;
+      border: 2px dashed var(--line); border-radius: 16px; height: 160px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; position: relative;
     }
-    .upload-box.dragover { background: #f4f8ee; border-color: #cfe0a6; }
+    .upload-box:hover, .upload-box.dragover { background: #fafafa; border-color: #ccc; }
     .upload-btn {
-      background: var(--accent); color: #fff; padding: 10px 40px; border-radius: 12px;
-      font-weight: 600; cursor: pointer; display: inline-flex; margin-bottom: 20px;
+      background: var(--accent); color: #fff; padding: 10px 24px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; margin-bottom: 12px; pointer-events: none; /* 让点击穿透到父级 */
     }
-    .upload-tip { position: absolute; bottom: 48px; font-size: 12px; color: #94928D; }
+    .upload-tip { color: #999; font-size: 12px; }
     input[type="file"] { display: none; }
 
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
-    .stat { background: #fbfaf7; border: 0.5px solid var(--line); border-radius: 16px; padding: 14px 16px; }
-    .stat b { display: block; color: #7f7d77; font-size: 12px; margin-bottom: 6px; }
-    .stat .v { font-size: 18px; font-weight: 700; color: #262626; }
-
-    /* 播放器区域 */
-    .players { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .player { background: #fff; border: 0.5px solid var(--line); border-radius: 16px; overflow: hidden; }
-    .player-head { display: flex; justify-content: space-between; padding: 10px 12px; background: #faf9f6; border-bottom: 0.5px solid var(--line); }
-    .ph-title { font-size: 12px; font-weight: 700; color: #6d6b66; align-self: center;}
-    .ph-actions { display: flex; gap: 8px; }
-    .sm-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
-    .sm-btn:hover { opacity: 0.9; }
-    
-    .frame {
-      --tile: 18px; --c1: #fff; --c2: #eee;
-      height: 360px;
-      background-color: var(--c1);
-      background-image: conic-gradient(var(--c2) 25%, var(--c1) 0 50%, var(--c2) 0 75%, var(--c1) 0);
-      background-size: var(--tile) var(--tile);
-      display: flex; align-items: center; justify-content: center;
+    /* 播放器对比 */
+    .players { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .player-col { background: #fafafa; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+    .player-head { 
+      padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
     }
-    .stage { width: 100%; height: 100%; }
-
-    /* 底部操作区 */
-    .modes { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
-    .pill {
-      border-radius: 12px; padding: 10px 14px; background: #f5f4f1; color: #6a6a63; cursor: pointer; transition: all 0.2s;
-      border: 1px solid transparent;
+    .p-title { font-size: 12px; font-weight: 700; color: #666; }
+    .btns { display: flex; gap: 6px; }
+    .btn-xs { 
+      border: 1px solid var(--line); background: #fff; border-radius: 6px; 
+      padding: 4px 8px; font-size: 11px; cursor: pointer; color: #444;
     }
-    .pill.active { background: #D2DF93; color: #40443a; font-weight: 600; border-color: #c0ce85; }
+    .btn-xs:hover { background: #f0f0f0; }
+
+    .stage { 
+      height: 300px; background: #fff;
+      /* 透明背景网格 */
+      background-image: conic-gradient(#eee 25%, #fff 0 50%, #eee 0 75%, #fff 0);
+      background-size: 20px 20px;
+    }
+
+    /* 底部控制栏 */
+    .controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
     
-    .fps-row { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .label { font-size: 12px; font-weight: 600; color: #666; }
+    
     .fps-input {
-      flex: 1; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line);
-      background: #fbfaf7; font-size: 14px;
+      padding: 0 12px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+      font-size: 14px; width: 100%; box-sizing: border-box;
     }
-    .apply-btn {
-      height: 44px; padding: 0 24px; border: none; border-radius: 12px;
-      background: #47453E; color: #fff; font-weight: 700; cursor: pointer;
+
+    .pill-group { display: flex; gap: 8px; }
+    .pill {
+      padding: 8px 16px; border-radius: 10px; font-size: 13px; background: #f0f0f0; color: #666;
+      cursor: pointer; border: 1px solid transparent; user-select: none;
     }
-    .apply-btn:disabled, .submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pill.active { background: #dceecf; color: #3b5226; border-color: #bed6aa; font-weight: 600; }
+
+    .action-btn {
+      height: 42px; padding: 0 24px; background: var(--accent); color: #fff;
+      border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
+    }
+    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     
-    .submit {
-      width: 100%; height: 46px; border: none; border-radius: 12px;
-      background: #2b2b2b; color: #fff; font-weight: 700; cursor: pointer;
+    .download-btn {
+      width: 100%; height: 48px; background: #222; color: #fff; border-radius: 12px;
+      font-weight: 600; margin-top: 16px; border: none; cursor: pointer;
     }
+    .download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* 简单的 Toast */
     .toast {
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-      background: rgba(0, 0, 0, .85); color: #fff; padding: 10px 20px; border-radius: 30px;
-      font-size: 13px; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 9999;
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px;
+      font-size: 13px; opacity: 0; transition: all 0.3s; pointer-events: none;
     }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
-
-    @media(max-width: 920px) {
-      .players { grid-template-columns: 1fr; }
-      .frame { height: 280px; }
-    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   </style>
-  
-  <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+
+  <script src="https://cdn.staticfile.org/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
 
 <body>
@@ -142,387 +148,272 @@
   </div>
 
   <div class="wrap">
-    <h2 class="title">
-      ⚡ Lottie 动画修复与 FPS 修改工具
-    </h2>
+    <div style="margin-bottom: 24px;">
+      <h2 style="margin:0 0 8px 0;">⚡ Lottie 动画修复与 FPS 修改</h2>
+      <div style="color:#888; font-size:13px;">支持自动修复宽高为 0 的异常层、调整帧率并保持速度</div>
+    </div>
 
-    <div class="card">
+    <div class="card" style="padding: 10px;">
       <div class="upload-box" id="uploadBox">
-        <input id="file" type="file" accept=".json,application/json" />
-        <label for="file" class="upload-btn" id="btnPick">上传 JSON 文件</label>
-        <div class="upload-tip">支持拖拽上传，自动修复宽高异常</div>
-      </div>
-      
-      <div class="stats" id="stats" hidden>
-        <div class="stat"><b>当前帧率</b><div class="v" id="curFr">-</div></div>
-        <div class="stat"><b>开始帧 ip</b><div class="v" id="curIp">-</div></div>
-        <div class="stat"><b>结束帧 op</b><div class="v" id="curOp">-</div></div>
-        <div class="stat"><b>时长 (秒)</b><div class="v" id="curSec">-</div></div>
+        <div class="upload-btn">选择 JSON 文件</div>
+        <div class="upload-tip">或将其拖拽至此区域</div>
+        <input type="file" id="fileInput" accept=".json,application/json">
       </div>
     </div>
 
     <div class="card">
       <div class="players">
-        <div class="player">
+        <div class="player-col">
           <div class="player-head">
-            <div class="ph-title">源文件预览</div>
-            <div class="ph-actions">
-              <button class="sm-btn" id="p1Play">播</button>
-              <button class="sm-btn" id="p1Pause">停</button>
-              <button class="sm-btn" id="p1Stop">复</button>
+            <span class="p-title">原始文件 <span id="info1" style="font-weight:400;margin-left:5px"></span></span>
+            <div class="btns">
+              <button class="btn-xs" onclick="anim1?.play()">播</button>
+              <button class="btn-xs" onclick="anim1?.pause()">停</button>
             </div>
           </div>
-          <div class="frame">
-            <div id="stage1" class="stage"></div>
-          </div>
+          <div id="stage1" class="stage"></div>
         </div>
-
-        <div class="player">
+        <div class="player-col">
           <div class="player-head">
-            <div class="ph-title">修复/修改后预览</div>
-            <div class="ph-actions">
-              <button class="sm-btn" id="p2Play">播</button>
-              <button class="sm-btn" id="p2Pause">停</button>
-              <button class="sm-btn" id="p2Stop">复</button>
+            <span class="p-title">修改后 <span id="info2" style="font-weight:400;margin-left:5px"></span></span>
+            <div class="btns">
+              <button class="btn-xs" onclick="anim2?.play()">播</button>
+              <button class="btn-xs" onclick="anim2?.pause()">停</button>
             </div>
           </div>
-          <div class="frame">
-            <div id="stage2" class="stage"></div>
-          </div>
+          <div id="stage2" class="stage"></div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="section-title" style="margin-bottom: 10px; font-weight: 700; color: #666;">选择模式</div>
-      <div class="modes" id="modeGroup">
-        <div class="pill active" data-mode="scale-keyframes">缩放关键帧 (保持动画速度)</div>
-        <div class="pill" data-mode="just-fr">仅改帧率数值 (改变动画速度)</div>
-        <div class="pill" data-mode="repair-only">仅修复异常 (不改帧率)</div>
+      <div class="controls">
+        <div class="input-group" style="flex:2;">
+          <div class="label">处理模式</div>
+          <div class="pill-group" id="modeGroup">
+            <div class="pill active" data-mode="scale">缩放时间 (保持速度)</div>
+            <div class="pill" data-mode="fps">仅改 FPS (变快/慢)</div>
+            <div class="pill" data-mode="fix">仅修复异常</div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <div class="label">目标帧率</div>
+          <input type="number" id="fpsInput" class="fps-input" placeholder="例如 60">
+        </div>
+
+        <button id="applyBtn" class="action-btn" disabled>应用</button>
       </div>
 
-      <div class="section-title" style="margin-bottom: 10px; font-weight: 700; color: #666;">目标帧率</div>
-      <div class="fps-row">
-        <input id="targetFr" class="fps-input" type="number" min="1" max="240" step="1" placeholder="例如：60" />
-        <button id="applyBtn" class="apply-btn" disabled>应用修改</button>
-      </div>
-
-      <button id="downloadBtn" class="submit" disabled>下载修复后的 JSON</button>
+      <button id="dlBtn" class="download-btn" disabled>下载文件</button>
     </div>
   </div>
 
   <div id="toast" class="toast"></div>
 
   <script>
-    (() => {
-      const $ = s => document.querySelector(s);
-      const $$ = s => document.querySelectorAll(s);
+    // 页面加载完毕强制隐藏 Loading，防止卡死
+    window.addEventListener('load', () => {
+      document.getElementById('loadingOverlay').hidden = true;
+    });
 
-      /* UI 元素 */
-      const uploadBox = $('#uploadBox'), fileInput = $('#file');
-      const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
-      const stage1 = $('#stage1'), stage2 = $('#stage2');
-      const loadingOverlay = $('#loadingOverlay');
-      const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
-      const applyBtn = $('#applyBtn'), downloadBtn = $('#downloadBtn');
+    const $ = id => document.getElementById(id);
+    const loadingEl = $('loadingOverlay');
+    const toastEl = $('toast');
+    
+    let originalData = null;
+    let processedData = null;
+    let anim1 = null, anim2 = null;
+    let fileName = 'lottie.json';
 
-      let originalObj = null;
-      let processedObj = null;
-      let fileName = 'animation.json';
-      let anim1 = null, anim2 = null;
+    // UI Helper
+    const showLoading = (txt) => { 
+      loadingEl.querySelector('.loading-text').innerText = txt; 
+      loadingEl.hidden = false; 
+    };
+    const hideLoading = () => { loadingEl.hidden = true; };
+    const showToast = (txt) => {
+      toastEl.innerText = txt; toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 2000);
+    }
 
-      /* ================= 工具函数 ================= */
+    // --- 核心逻辑 ---
 
-      // 1. UI 交互
-      function showLoading(msg) {
-        $('.loading-text').textContent = msg || '处理中...';
-        loadingOverlay.hidden = false;
+    // 1. 自动修复宽高逻辑
+    function autoFix(json) {
+      if (!json) return;
+      const mainW = json.w || 500;
+      const mainH = json.h || 500;
+      let count = 0;
+
+      const fixItem = (item) => {
+        // 检查 assets 和 layers
+        if ((item.w === 0 || !item.w) && item.ty !== undefined) { 
+          item.w = mainW; item.h = mainH; count++; 
+        }
+      };
+
+      if (json.assets) {
+        json.assets.forEach(a => {
+          if (!a.w || a.w === 0) { a.w = mainW; a.h = mainH; count++; }
+        });
       }
-      function hideLoading() { loadingOverlay.hidden = true; }
       
-      function showToast(msg, ms = 2000) {
-        const t = $('#toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), ms);
-      }
-
-      function clearPreviousFileUI() {
-        if (anim1) { anim1.destroy(); anim1 = null; }
-        if (anim2) { anim2.destroy(); anim2 = null; }
-        stage1.innerHTML = '';
-        stage2.innerHTML = '';
-        curFrEl.textContent = '-';
-        statsEl.hidden = true;
-        applyBtn.disabled = true;
-        downloadBtn.disabled = true;
-        downloadBtn.textContent = '下载修复后的 JSON';
-        fpsInp.value = '';
-      }
-
-      function updateStats(o) {
-        if (!o) return;
-        curFrEl.textContent = o.fr || 60;
-        curIpEl.textContent = o.ip || 0;
-        curOpEl.textContent = o.op || 0;
-        const dur = ((o.op - o.ip) / o.fr).toFixed(2);
-        curSecEl.textContent = dur;
-        statsEl.hidden = false;
-      }
-
-      const deepClone = o => JSON.parse(JSON.stringify(o));
-
-      /* ================= 核心修复与处理逻辑 ================= */
-
-      /**
-       * ✅ 自动修复宽高异常 (w=0, h=0)
-       * 逻辑：读取主合成宽高，强制应用到所有宽高缺失或为0的 assets 和 layers
-       */
-      function autoRepairDimensions(lottieObj) {
-        if (!lottieObj) return;
-        
-        const mainW = lottieObj.w || 500;
-        const mainH = lottieObj.h || 500;
-        let repairCount = 0;
-
-        // 1. 修复 Assets (预合成/图片)
-        if (Array.isArray(lottieObj.assets)) {
-          lottieObj.assets.forEach(asset => {
-            // 如果是图片或预合成，且宽高异常
-            if (!asset.w || asset.w <= 0) { asset.w = mainW; repairCount++; }
-            if (!asset.h || asset.h <= 0) { asset.h = mainH; repairCount++; }
-          });
-        }
-
-        // 2. 修复 Layers (主要是 Solid 层或预合成层引用)
-        const fixLayers = (layers) => {
-          if (!Array.isArray(layers)) return;
-          layers.forEach(layer => {
-            // Solid Layer (ty=1) 必须有宽高
-            if (layer.ty === 1) {
-              if (!layer.w || layer.w <= 0) { layer.w = mainW; repairCount++; }
-              if (!layer.h || layer.h <= 0) { layer.h = mainH; repairCount++; }
-            }
-            // 递归修复遮罩或其他子层
-            if (Array.isArray(layer.layers)) fixLayers(layer.layers);
-          });
-        }
-
-        if (Array.isArray(lottieObj.layers)) {
-          fixLayers(lottieObj.layers);
-        }
-
-        if (repairCount > 0) {
-          console.log(`已修复 ${repairCount} 个宽高异常项`);
-        }
-        return lottieObj;
-      }
-
-      // 递归缩放时间 (Mode 1: Scale Keyframes)
-      function scaleAllTimings(root, f) {
-        // 内部工具：缩放关键帧 T 值
-        const scaleVal = (v) => (typeof v === 'number' ? v * f : v);
-        
-        const traverse = (obj) => {
-          if (!obj || typeof obj !== 'object') return;
-          
-          // 处理关键帧对象 (有 t 属性且不是渐变定义)
-          if ('t' in obj && typeof obj.t === 'number') {
-             // 排除渐变填充 (ty='gf')
-             const isGradient = obj.ty === 'gf' || (('g' in obj) && ('s' in obj) && ('e' in obj) && !('k' in obj));
-             if (!isGradient) {
-               // 判断是否像关键帧结构
-               const isKF = ('s' in obj) || ('e' in obj) || ('i' in obj) || ('o' in obj) || ('h' in obj) || ('hold' in obj);
-               if (isKF) obj.t *= f;
-             }
+      // 递归修复 Layer (简单版，主要针对顶层和一级子层)
+      if (json.layers) {
+        json.layers.forEach(l => {
+          // 如果是 Solid(1) 或 Precomp(0) 且无宽高
+          if ((l.ty === 1 || l.ty === 0) && (!l.w || l.w === 0)) {
+            l.w = mainW; l.h = mainH; count++;
           }
-          
-          // 处理数组关键帧 k: [...]
-          if (Array.isArray(obj.k)) {
-            obj.k.forEach(kItem => {
-              if (kItem && typeof kItem.t === 'number') kItem.t *= f;
-            });
-          }
-
-          // 处理 ip / op / st
-          if ('ip' in obj) obj.ip = scaleVal(obj.ip);
-          if ('op' in obj) obj.op = scaleVal(obj.op);
-          if ('st' in obj) obj.st = scaleVal(obj.st);
-
-          // 递归遍历
-          for (const key in obj) {
-             if (typeof obj[key] === 'object') traverse(obj[key]);
-          }
-        };
-
-        traverse(root);
+        });
       }
+      return count;
+    }
 
-      /* ================= 事件监听 ================= */
-
-      // 1. 文件上传
-      fileInput.addEventListener('change', handleFileSelect);
+    // 2. 时间缩放逻辑
+    function scaleTime(obj, factor) {
+      if (typeof obj !== 'object' || obj === null) return;
       
-      async function handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        showLoading('读取并解析文件...');
-        fileName = file.name;
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          try {
-            const jsonStr = evt.target.result;
-            // 简单的 JSON 净化
-            const cleanStr = jsonStr.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
-            const obj = JSON.parse(cleanStr);
-
-            clearPreviousFileUI();
-            originalObj = obj;
-
-            // 初始预览
-            anim1 = lottie.loadAnimation({
-              container: stage1,
-              renderer: 'svg',
-              loop: true,
-              autoplay: true,
-              animationData: deepClone(originalObj)
-            });
-
-            updateStats(originalObj);
-            fpsInp.value = Math.round(originalObj.fr || 30); // 默认填入当前帧率
-            applyBtn.disabled = false;
-            
-            showToast('文件已加载');
-          } catch (err) {
-            alert('解析失败：' + err.message);
-          } finally {
-            hideLoading();
-            fileInput.value = ''; // 重置
-          }
-        };
-        reader.readAsText(file);
+      // 关键帧 T 值
+      if (obj.t !== undefined && typeof obj.t === 'number' && !obj.ty) { // 简单排除渐变等非时间属性
+         // 粗略判断是否是关键帧对象
+         if (obj.s || obj.e || obj.hold) obj.t *= factor;
       }
+      // 数组中的 keyframes
+      if (Array.isArray(obj.k)) {
+        obj.k.forEach(k => { if (typeof k.t === 'number') k.t *= factor; });
+      }
+      
+      // 层的出入点
+      if (obj.ip !== undefined) obj.ip *= factor;
+      if (obj.op !== undefined) obj.op *= factor;
+      if (obj.st !== undefined) obj.st *= factor;
 
-      // 2. 模式切换
-      modeGroup.addEventListener('click', (e) => {
-        if (e.target.classList.contains('pill')) {
-          $$('.pill').forEach(p => p.classList.remove('active'));
-          e.target.classList.add('active');
-          
-          // 如果是 "repair-only"，禁用帧率输入框
-          const mode = e.target.dataset.mode;
-          fpsInp.disabled = (mode === 'repair-only');
-          if (mode === 'repair-only' && originalObj) fpsInp.value = originalObj.fr;
-        }
+      // 递归
+      Object.keys(obj).forEach(key => {
+        if (typeof obj[key] === 'object') scaleTime(obj[key], factor);
       });
+    }
 
-      // 3. 应用修改按钮
-      applyBtn.addEventListener('click', async () => {
-        if (!originalObj) return;
-        showLoading('正在处理...');
+    // --- 交互逻辑 ---
 
-        // 给 UI 渲染留点时间
-        await new Promise(r => setTimeout(r, 50));
-
+    $('uploadBox').onclick = () => $('fileInput').click();
+    
+    $('fileInput').onchange = (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      fileName = f.name;
+      showLoading('读取中...');
+      
+      const reader = new FileReader();
+      reader.onload = (ev) => {
         try {
-          processedObj = deepClone(originalObj);
+          originalData = JSON.parse(ev.target.result);
           
-          // A. 执行自动修复 (Always run repair)
-          autoRepairDimensions(processedObj);
-
-          const activeMode = $('.pill.active').dataset.mode;
-          const targetFps = parseFloat(fpsInp.value);
-          const currentFps = processedObj.fr || 60;
-
-          if (activeMode === 'scale-keyframes') {
-            // 模式1: 缩放时间，保持速度
-            if (targetFps && targetFps > 0 && targetFps !== currentFps) {
-               const ratio = targetFps / currentFps;
-               scaleAllTimings(processedObj, ratio);
-               processedObj.fr = targetFps;
-            }
-          } else if (activeMode === 'just-fr') {
-            // 模式2: 仅改数值，速度变化
-             if (targetFps && targetFps > 0) {
-               processedObj.fr = targetFps;
-             }
-          }
-          // 模式3 (repair-only) 已经在步骤 A 完成了
-
-          // B. 渲染结果预览
-          if (anim2) anim2.destroy();
-          stage2.innerHTML = '';
-          anim2 = lottie.loadAnimation({
-            container: stage2,
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            animationData: deepClone(processedObj)
+          // 渲染左侧
+          if (anim1) anim1.destroy();
+          $('stage1').innerHTML = '';
+          anim1 = lottie.loadAnimation({
+            container: $('stage1'), renderer: 'svg', loop: true, autoplay: true, 
+            animationData: JSON.parse(JSON.stringify(originalData)) // Deep copy
           });
-
-          downloadBtn.disabled = false;
-          downloadBtn.innerHTML = `下载修改后的 JSON (${targetFps} fps)`;
-          showToast('处理完成！');
-
-        } catch (err) {
-          console.error(err);
-          alert('处理出错: ' + err.message);
-        } finally {
+          
+          $('info1').innerText = `(${originalData.fr || 30} fps)`;
+          $('fpsInput').value = originalData.fr || 60;
+          $('applyBtn').disabled = false;
+          
           hideLoading();
+        } catch (err) {
+          hideLoading();
+          alert('JSON 解析失败');
         }
-      });
+      };
+      reader.readAsText(f);
+    };
 
-      // 4. 下载按钮
-      downloadBtn.addEventListener('click', () => {
-        if (!processedObj) return;
-        const str = JSON.stringify(processedObj); // 压缩输出，不带空格
-        const blob = new Blob([str], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        // 生成文件名
-        const extIndex = fileName.lastIndexOf('.');
-        const baseName = extIndex > 0 ? fileName.substring(0, extIndex) : fileName;
-        a.download = `${baseName}_fixed_${processedObj.fr}fps.json`;
-        
-        a.href = url;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('已开始下载');
-      });
-
-      // 5. 播放器控制按钮绑定
-      function bindControls(animRefGetter, playBtn, pauseBtn, stopBtn) {
-        $(playBtn).onclick = () => { const a = animRefGetter(); if(a) a.play(); };
-        $(pauseBtn).onclick = () => { const a = animRefGetter(); if(a) a.pause(); };
-        $(stopBtn).onclick  = () => { const a = animRefGetter(); if(a) a.stop(); };
+    // 模式切换
+    const modes = document.querySelectorAll('.pill');
+    modes.forEach(m => {
+      m.onclick = () => {
+        modes.forEach(p => p.classList.remove('active'));
+        m.classList.add('active');
+        const mode = m.dataset.mode;
+        $('fpsInput').disabled = (mode === 'fix');
       }
+    });
 
-      bindControls(() => anim1, '#p1Play', '#p1Pause', '#p1Stop');
-      bindControls(() => anim2, '#p2Play', '#p2Pause', '#p2Stop');
+    // 应用修改
+    $('applyBtn').onclick = async () => {
+      if (!originalData) return;
+      showLoading('处理中...');
+      
+      // 延迟一下让 UI 渲染
+      await new Promise(r => setTimeout(r, 50));
+      
+      try {
+        processedData = JSON.parse(JSON.stringify(originalData));
+        const mode = document.querySelector('.pill.active').dataset.mode;
+        const targetFps = parseFloat($('fpsInput').value) || 60;
+        const srcFps = processedData.fr || 30;
 
-      // 拖拽支持
-      ['dragenter', 'dragover'].forEach(evt => {
-        uploadBox.addEventListener(evt, (e) => { e.preventDefault(); uploadBox.classList.add('dragover'); });
-      });
-      ['dragleave', 'drop'].forEach(evt => {
-        uploadBox.addEventListener(evt, (e) => { e.preventDefault(); uploadBox.classList.remove('dragover'); });
-      });
-      uploadBox.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        if (dt.files && dt.files.length) {
-          fileInput.files = dt.files;
-          // 手动触发 change 事件
-          const event = new Event('change');
-          fileInput.dispatchEvent(event);
+        // 1. 先修复
+        const fixedCount = autoFix(processedData);
+        if (fixedCount > 0) console.log(`已修复 ${fixedCount} 个异常宽高`);
+
+        // 2. 根据模式处理
+        if (mode === 'scale') {
+          if (targetFps !== srcFps) {
+            const ratio = targetFps / srcFps;
+            scaleTime(processedData, ratio);
+            processedData.fr = targetFps;
+          }
+        } else if (mode === 'fps') {
+          processedData.fr = targetFps;
         }
-      });
+        
+        // 3. 渲染右侧
+        if (anim2) anim2.destroy();
+        $('stage2').innerHTML = '';
+        anim2 = lottie.loadAnimation({
+          container: $('stage2'), renderer: 'svg', loop: true, autoplay: true, 
+          animationData: JSON.parse(JSON.stringify(processedData))
+        });
+        
+        $('info2').innerText = `(${processedData.fr} fps)`;
+        $('dlBtn').disabled = false;
+        $('dlBtn').innerText = `下载 (${processedData.fr} fps)`;
+        
+        showToast('处理完成');
+      } catch (err) {
+        console.error(err);
+        alert('处理出错');
+      }
+      hideLoading();
+    };
 
-    })();
+    // 下载
+    $('dlBtn').onclick = () => {
+      const blob = new Blob([JSON.stringify(processedData)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace('.json', '_fixed.json');
+      a.click();
+    };
+    
+    // 拖拽
+    const ub = $('uploadBox');
+    ub.ondragover = (e) => { e.preventDefault(); ub.classList.add('dragover'); };
+    ub.ondragleave = (e) => { e.preventDefault(); ub.classList.remove('dragover'); };
+    ub.ondrop = (e) => {
+      e.preventDefault(); ub.classList.remove('dragover');
+      if(e.dataTransfer.files.length) {
+        $('fileInput').files = e.dataTransfer.files;
+        $('fileInput').dispatchEvent(new Event('change'));
+      }
+    };
+
   </script>
 </body>
 </html>
