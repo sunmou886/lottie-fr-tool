@@ -4,416 +4,1406 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lottie 动画修复与帧率修改工具</title>
-  
+  <title>Lottie动画帧率修改和json预览工具</title>
+  <meta name="description" content="自由的修改Lottie动画帧率并支持预览">
+  <!-- ✅ favicon / 浏览器标签图标 -->
+  <link rel="icon" href="/favicon.ico" sizes="any"> <!-- 16x16 / 32x32 内嵌多分辨率 -->
+  <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+  <!-- ✅ iOS Safari / Android 主屏幕图标 -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <!-- ✅ Open Graph / 社交分享 -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://example.com/">
+  <meta property="og:title" content="Lottie动画帧率修改和Json预览工具">
+  <meta property="og:description" content="自由的修改Lottie动画帧率并支持预览。">
+  <meta property="og:image" content="https://example.com/og-image.png">
+
+  <!-- ✅ Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://example.com/">
+  <meta name="twitter:title" content="Lottie动画帧率修改和Json预览工具">
+  <meta name="twitter:description" content="自由的修改Lottie动画帧率并支持预览。">
+  <meta name="twitter:image" content="https://example.com/og-image.png">
+
   <style>
     :root {
       --bg: #f7f6f3;
       --card: #ffffff;
       --text: #2b2b2b;
-      --accent: #46473E;
+      --muted: #9a9a95;
       --line: #e9e7e2;
+      --accent: #46473E;
+      --accent-press: #2f2b26;
+      --pill-active: #d8e7b9;
+      --pill-text: #40443a;
+      --shadow: 0 2px 12px rgba(0, 0, 0, .05);
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, PingFang SC, Helvetica, Arial, sans-serif;
     }
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 图标和文字的间距 */
+}
+.title-icon {
+  width: 48px; /* 根据需要调节 */
+  height: 100%;
+  object-fit: contain;
+}
 
-    /* --- Loading 遮罩层 (核心修复) --- */
-    .loading-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: saturate(180%) blur(4px);
-      /* 默认是 flex，但在 hidden 时必须隐藏 */
-      display: flex; 
-      align-items: center; justify-content: center;
-      transition: opacity 0.3s;
-    }
+.title-icon2 {
+  width: 56px; /* 根据需要调节 */
+  height: 100%;
+  object-fit: contain;
+}
     
-    /* 🔥【关键修复】强制隐藏属性生效，覆盖 display: flex */
-    .loading-overlay[hidden] {
-      display: none !important;
+    .footer {
+
+      padding: 24px 0 40px 0;
+      background: #f7f6f3;
+      text-align: center;
     }
 
-    .loading-box {
-      background: #fff; padding: 16px 24px; border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .spinner {
-      width: 20px; height: 20px; border-radius: 50%;
-      border: 2.5px solid #e1e1e1; border-top-color: #333;
-      animation: spin 0.8s linear infinite;
-    }
-    .loading-text { font-weight: 600; font-size: 14px; color: #333; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* --- 布局样式 --- */
-    .wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
-    
-    .card { 
-      background: #fff; border-radius: 24px; padding: 24px; 
-      box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;
+    .footer-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #94928D;
+      font-size: 16px;
+      text-decoration: none;
+      /* 去掉下划线 */
+      transition: color 0.3s ease;
     }
 
-    /* 上传区 */
+    .footer-content svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .footer-content svg [fill]:not([fill="none"]) {
+      fill: currentColor !important;
+      transition: fill .25s ease;
+    }
+
+    .footer-content svg [stroke]:not([stroke="none"]) {
+      stroke: currentColor !important;
+      transition: stroke .25s ease;
+    }
+
+    /* hover 效果 */
+    .footer-content:hover {
+      color: #46473E;
+      /* 悬停时，文字和图标一起变色 */
+    }
+
+    .footer-content:hover {
+      color: #46473E;
+    }
+
+    .footer-content:hover svg path[fill] {
+      fill: #46473E;
+      /* 图标颜色也随 hover 变化 */
+    }
+
+    /* Loading 覆盖层 */
+.loading-overlay{
+  position:fixed; inset:0; z-index:9998;
+  background:rgba(255,255,255,.6);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:saturate(180%) blur(3px);
+}
+.loading-box{
+  background:#fff; border:1px solid #ece9e2; border-radius:16px;
+  padding:16px 18px; display:flex; align-items:center; gap:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+.spinner{
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid #d9d7d2; border-top-color:#3f3b35;
+  animation:spin .8s linear infinite;
+}
+.loading-text{ color:#3f3b35; font-weight:700; font-size:14px; }
+@keyframes spin{ to{ transform:rotate(360deg);} }
+
+
+    .wrap {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 20px;
+    }
+
+    .title {
+      font-weight: 600;
+      font-size: 24px;
+      margin: 0 0 24px 6px;
+      color: #242424;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+
+    }
+
     .upload-box {
-      border: 2px dashed var(--line); border-radius: 16px; height: 160px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.2s; position: relative;
+      border: 1.5px dashed var(--line);
+      border-radius: 16px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
     }
-    .upload-box:hover, .upload-box.dragover { background: #fafafa; border-color: #ccc; }
+
+
     .upload-btn {
-      background: var(--accent); color: #fff; padding: 10px 24px; border-radius: 10px;
-      font-size: 14px; font-weight: 600; margin-bottom: 12px; pointer-events: none; /* 让点击穿透到父级 */
-    }
-    .upload-tip { color: #999; font-size: 12px; }
-    input[type="file"] { display: none; }
-
-    /* 播放器对比 */
-    .players { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .player-col { background: #fafafa; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
-    .player-head { 
-      padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .p-title { font-size: 12px; font-weight: 700; color: #666; }
-    .btns { display: flex; gap: 6px; }
-    .btn-xs { 
-      border: 1px solid var(--line); background: #fff; border-radius: 6px; 
-      padding: 4px 8px; font-size: 11px; cursor: pointer; color: #444;
-    }
-    .btn-xs:hover { background: #f0f0f0; }
-
-    .stage { 
-      height: 300px; background: #fff;
-      /* 透明背景网格 */
-      background-image: conic-gradient(#eee 25%, #fff 0 50%, #eee 0 75%, #fff 0);
-      background-size: 20px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      padding: 10px 40px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* 底部控制栏 */
-    .controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
-    
-    .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-    .label { font-size: 12px; font-weight: 600; color: #666; }
+    .upload-btn:active {
+      background: var(--accent-press);
+      transform: translateY(1px);
+    }
+
+    .upload-tip {
+      position: absolute;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #94928D;
+    }
+
+    .upload-box.dragover {
+      background: #f4f8ee;
+      border-color: #cfe0a6;
+    }
+
+    .fps-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin: 0px 0 24px;
+    }
+
+    .apply-btn {
+      height: 44px;
+      padding: 0 20px;
+      border: none;
+      border-radius: 12px;
+      background: #47453E;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .apply-btn:active {
+      background: #2f2b26;
+      transform: translateY(1px);
+    }
+
+    .apply-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+/* 确保 hidden 一定生效，覆盖任何 display 设置 */
+.loading-overlay[hidden] { display: none !important; }
+
+    /* 无障碍隐藏：不要 display:none，避免 Safari 拒绝触发 */
+    input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      background: #fbfaf7;
+      border: 0.5px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+
+    .stat b {
+      display: block;
+      color: #7f7d77;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .stat .v {
+      font-size: 18px;
+      font-weight: 700;
+      color: #262626;
+    }
+
+    .card-mid {
+      margin-top: 16px;
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+
+    }
+
+    .players {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .player {
+      background: #fff;
+      border: 0.5px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .player-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 0.5px solid var(--line);
+      background: #faf9f6;
+    }
+
+    .ph-title {
+      font-size: 12px;
+      color: #6d6b66;
+      font-weight: 700;
+    }
+
+    .ph-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .sm-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .sm-btn:active {
+      background: var(--accent-press);
+    }
+
+    .frame {
+      --tile: 18px;
+      --c1: #fff;
+      --c2: #eee;
+      height: 360px;
+      background-color: var(--c1);
+      background-image: conic-gradient(var(--c2)25%, var(--c1)0 50%, var(--c2)0 75%, var(--c1)0);
+      background-size: var(--tile) var(--tile);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+
+    .card-bottom {
+      margin-top: 16px;
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+
+    }
+
+    .section-title {
+      font-size: 12px;
+      color: #6d6b66;
+      margin: 0px 2px 10px;
+      font-weight: 700;
+    }
+
+    .modes {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      border-radius: 12px;
+      padding: 10px 14px;
+
+      background: #f5f4f1;
+      color: #6a6a63;
+      cursor: pointer;
+    }
+
+    .pill.active {
+      background: #D2DF93;
+      color: #40443a;
+
+      font-weight: 600;
+    }
+
+    .fps-wrap {
+      margin: 18px 0 16px;
+    }
+
+/* Chrome / Edge / Safari */
+.fps-input::-webkit-outer-spin-button,
+.fps-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.fps-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
     
     .fps-input {
-      padding: 0 12px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
-      font-size: 14px; width: 100%; box-sizing: border-box;
+      width: 280px;
+      max-width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fbfaf7;
+      color: #2a2a2a;
+      font-size: 14px;
     }
 
-    .pill-group { display: flex; gap: 8px; }
-    .pill {
-      padding: 8px 16px; border-radius: 10px; font-size: 13px; background: #f0f0f0; color: #666;
-      cursor: pointer; border: 1px solid transparent; user-select: none;
+    .fps-input::placeholder {
+      color: #b3b1ab;
     }
-    .pill.active { background: #dceecf; color: #3b5226; border-color: #bed6aa; font-weight: 600; }
+    .fps-input:focus {
+  outline: none; /* 去掉默认蓝色描边 */
+  border-color: #8ca86d;   /* 改成你想要的边框色，比如绿色 */
+  box-shadow: 0 0 0 2px rgba(140, 168, 109, 0.3); /* 自定义 focus 阴影 */
+}
 
-    .action-btn {
-      height: 42px; padding: 0 24px; background: var(--accent); color: #fff;
-      border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
+    .submit {
+      width: 100%;
+      height: 46px;
+      border: none;
+      border-radius: 12px;
+      background: #47453E;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
     }
-    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    .download-btn {
-      width: 100%; height: 48px; background: #222; color: #fff; border-radius: 12px;
-      font-weight: 600; margin-top: 16px; border: none; cursor: pointer;
-    }
-    .download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* 简单的 Toast */
+    .submit:active {
+      background: #2f2b26;
+      transform: translateY(1px);
+    }
+
+    .submit:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
     .toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
-      background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px;
-      font-size: 13px; opacity: 0; transition: all 0.3s; pointer-events: none;
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, .82);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      z-index: 9999;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-  </style>
 
-  <script src="https://cdn.staticfile.org/lottie-web/5.12.2/lottie.min.js"></script>
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    @media(max-width:920px) {
+      .players {
+        grid-template-columns: 1fr;
+      }
+
+      .frame {
+        height: 320px;
+      }
+    }
+  </style>
+  <!-- 使用 unpkg 镜像，减少加载失败概率 -->
+  <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+
+   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
-  <div class="loading-overlay" id="loadingOverlay" hidden>
-    <div class="loading-box">
-      <div class="spinner"></div>
-      <div class="loading-text">处理中...</div>
-    </div>
-  </div>
-
   <div class="wrap">
-    <div style="margin-bottom: 24px;">
-      <h2 style="margin:0 0 8px 0;">⚡ Lottie 动画修复与 FPS 修改</h2>
-      <div style="color:#888; font-size:13px;">支持自动修复宽高为 0 的异常层、调整帧率并保持速度</div>
-    </div>
+    <h2 class="title">
+  <img src="/meme2.gif" alt="logo" class="title-icon2">
+  Lottie 动画帧率修改和 JSON 预览工具
+      <img src="/meme.gif" alt="logo" class="title-icon">
+      
+</h2>
 
-    <div class="card" style="padding: 10px;">
+    <div class="card">
       <div class="upload-box" id="uploadBox">
-        <div class="upload-btn">选择 JSON 文件</div>
-        <div class="upload-tip">或将其拖拽至此区域</div>
-        <input type="file" id="fileInput" accept=".json,application/json">
+        <input id="file" type="file" accept=".json,application/json" />
+        <label for="file" class="upload-btn" id="btnPick" role="button" tabindex="0">上传文件</label>
+        <div class="upload-tip">或直接将 JSON 拖放至此</div>
+      </div>
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><b>当前帧率</b>
+          <div class="v" id="curFr">-</div>
+        </div>
+        <div class="stat"><b>开始帧 ip</b>
+          <div class="v" id="curIp">-</div>
+        </div>
+        <div class="stat"><b>结束帧 op</b>
+          <div class="v" id="curOp">-</div>
+        </div>
+        <div class="stat"><b>时长 (秒)</b>
+          <div class="v" id="curSec">-</div>
+        </div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card-mid">
       <div class="players">
-        <div class="player-col">
+        <div class="player">
           <div class="player-head">
-            <span class="p-title">原始文件 <span id="info1" style="font-weight:400;margin-left:5px"></span></span>
-            <div class="btns">
-              <button class="btn-xs" onclick="anim1?.play()">播</button>
-              <button class="btn-xs" onclick="anim1?.pause()">停</button>
+            <div class="ph-title">源文件预览</div>
+            <div class="ph-actions">
+              <button class="sm-btn" id="p1Play">播</button>
+              <button class="sm-btn" id="p1Pause">停</button>
+              <button class="sm-btn" id="p1Stop">复</button>
             </div>
           </div>
-          <div id="stage1" class="stage"></div>
+          <div class="frame">
+            <div id="stage1" class="stage"></div>
+          </div>
         </div>
-        <div class="player-col">
+
+        <div class="player">
           <div class="player-head">
-            <span class="p-title">修改后 <span id="info2" style="font-weight:400;margin-left:5px"></span></span>
-            <div class="btns">
-              <button class="btn-xs" onclick="anim2?.play()">播</button>
-              <button class="btn-xs" onclick="anim2?.pause()">停</button>
+            <div class="ph-title">修改后预览</div>
+            <div class="ph-actions">
+              <button class="sm-btn" id="p2Play">播</button>
+              <button class="sm-btn" id="p2Pause">停</button>
+              <button class="sm-btn" id="p2Stop">复</button>
             </div>
           </div>
-          <div id="stage2" class="stage"></div>
+          <div class="frame">
+            <div id="stage2" class="stage"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="controls">
-        <div class="input-group" style="flex:2;">
-          <div class="label">处理模式</div>
-          <div class="pill-group" id="modeGroup">
-            <div class="pill active" data-mode="scale">缩放时间 (保持速度)</div>
-            <div class="pill" data-mode="fps">仅改 FPS (变快/慢)</div>
-            <div class="pill" data-mode="fix">仅修复异常</div>
-          </div>
-        </div>
-        
-        <div class="input-group">
-          <div class="label">目标帧率</div>
-          <input type="number" id="fpsInput" class="fps-input" placeholder="例如 60">
-        </div>
+    <div class="card-bottom">
+      <div class="section-title">选择模式</div>
+      <div class="modes" id="modeGroup">
+        <div class="pill active" data-mode="scale-keyframes">缩放所有关键帧时间（推荐）</div>
+        <div class="pill" data-mode="keep-duration">保持整体时长</div>
+        <div class="pill" data-mode="just-fr">仅修改帧率</div>
+          <div class="pill" data-mode="scale-inout">只缩放入出点（保留关键帧t）</div>
 
-        <button id="applyBtn" class="action-btn" disabled>应用</button>
       </div>
 
-      <button id="dlBtn" class="download-btn" disabled>下载文件</button>
+      <div class="section-title" style="margin-top:24px;">目标帧率</div>
+
+      <!-- 新行：输入 + 应用按钮并排 -->
+      <div class="fps-row">
+        <input id="targetFr" class="fps-input" type="number" min="1" step="1" placeholder="请输入目标帧率（如 30）" />
+        <button id="applyBtn" class="apply-btn" disabled>应用</button>
+      </div>
+
+      <!-- 下载按钮：只有应用后才启用 -->
+      <button id="downloadBtn" class="submit" disabled>下载修改后的JSON</button>
+
     </div>
   </div>
 
   <div id="toast" class="toast"></div>
 
   <script>
-    // 页面加载完毕强制隐藏 Loading，防止卡死
-    window.addEventListener('load', () => {
-      document.getElementById('loadingOverlay').hidden = true;
-    });
+    (() => {
+      const $ = s => document.querySelector(s);
 
-    const $ = id => document.getElementById(id);
-    const loadingEl = $('loadingOverlay');
-    const toastEl = $('toast');
-    
-    let originalData = null;
-    let processedData = null;
-    let anim1 = null, anim2 = null;
-    let fileName = 'lottie.json';
+      /* ========= 绑定元素 ========= */
+      const uploadBox = $('#uploadBox'), fileInput = $('#file'), pickBtn = $('#btnPick');
+      const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
+      const stage1 = $('#stage1'), stage2 = $('#stage2');
+      const p1Play = $('#p1Play'), p1Pause = $('#p1Pause'), p1Stop = $('#p1Stop');
+      const p2Play = $('#p2Play'), p2Pause = $('#p2Pause'), p2Stop = $('#p2Stop');
+      const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
+      const applyBtn = $('#applyBtn'), downloadBtn = $('#downloadBtn');
 
-    // UI Helper
-    const showLoading = (txt) => { 
-      loadingEl.querySelector('.loading-text').innerText = txt; 
-      loadingEl.hidden = false; 
-    };
-    const hideLoading = () => { loadingEl.hidden = true; };
-    const showToast = (txt) => {
-      toastEl.innerText = txt; toastEl.classList.add('show');
-      setTimeout(() => toastEl.classList.remove('show'), 2000);
-    }
+      /* ========= 状态 ========= */
+      let activeMode = 'scale-keyframes';
+      let anim1 = null, anim2 = null;
+      let originalObj = null, processedObj = null;
+      let fileName = 'lottie.json';
+      let hasApplied = false;
 
-    // --- 核心逻辑 ---
-
-    // 1. 自动修复宽高逻辑
-    function autoFix(json) {
-      if (!json) return;
-      const mainW = json.w || 500;
-      const mainH = json.h || 500;
-      let count = 0;
-
-      const fixItem = (item) => {
-        // 检查 assets 和 layers
-        if ((item.w === 0 || !item.w) && item.ty !== undefined) { 
-          item.w = mainW; item.h = mainH; count++; 
-        }
-      };
-
-      if (json.assets) {
-        json.assets.forEach(a => {
-          if (!a.w || a.w === 0) { a.w = mainW; a.h = mainH; count++; }
-        });
+      /* ========= Toast ========= */
+      const toast = $('#toast');
+      function showToast(msg, ms = 1800) {
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), ms);
       }
-      
-      // 递归修复 Layer (简单版，主要针对顶层和一级子层)
-      if (json.layers) {
-        json.layers.forEach(l => {
-          // 如果是 Solid(1) 或 Precomp(0) 且无宽高
-          if ((l.ty === 1 || l.ty === 0) && (!l.w || l.w === 0)) {
-            l.w = mainW; l.h = mainH; count++;
-          }
-        });
-      }
-      return count;
-    }
 
-    // 2. 时间缩放逻辑
-    function scaleTime(obj, factor) {
-      if (typeof obj !== 'object' || obj === null) return;
-      
-      // 关键帧 T 值
-      if (obj.t !== undefined && typeof obj.t === 'number' && !obj.ty) { // 简单排除渐变等非时间属性
-         // 粗略判断是否是关键帧对象
-         if (obj.s || obj.e || obj.hold) obj.t *= factor;
-      }
-      // 数组中的 keyframes
-      if (Array.isArray(obj.k)) {
-        obj.k.forEach(k => { if (typeof k.t === 'number') k.t *= factor; });
-      }
-      
-      // 层的出入点
-      if (obj.ip !== undefined) obj.ip *= factor;
-      if (obj.op !== undefined) obj.op *= factor;
-      if (obj.st !== undefined) obj.st *= factor;
-
-      // 递归
-      Object.keys(obj).forEach(key => {
-        if (typeof obj[key] === 'object') scaleTime(obj[key], factor);
-      });
-    }
-
-    // --- 交互逻辑 ---
-
-    $('uploadBox').onclick = () => $('fileInput').click();
-    
-    $('fileInput').onchange = (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      fileName = f.name;
-      showLoading('读取中...');
-      
-      const reader = new FileReader();
-      reader.onload = (ev) => {
+      /* ========= 统计 ========= */
+      function updateStats(o) {
         try {
-          originalData = JSON.parse(ev.target.result);
-          
-          // 渲染左侧
-          if (anim1) anim1.destroy();
-          $('stage1').innerHTML = '';
-          anim1 = lottie.loadAnimation({
-            container: $('stage1'), renderer: 'svg', loop: true, autoplay: true, 
-            animationData: JSON.parse(JSON.stringify(originalData)) // Deep copy
-          });
-          
-          $('info1').innerText = `(${originalData.fr || 30} fps)`;
-          $('fpsInput').value = originalData.fr || 60;
-          $('applyBtn').disabled = false;
-          
-          hideLoading();
-        } catch (err) {
-          hideLoading();
-          alert('JSON 解析失败');
-        }
-      };
-      reader.readAsText(f);
-    };
-
-    // 模式切换
-    const modes = document.querySelectorAll('.pill');
-    modes.forEach(m => {
-      m.onclick = () => {
-        modes.forEach(p => p.classList.remove('active'));
-        m.classList.add('active');
-        const mode = m.dataset.mode;
-        $('fpsInput').disabled = (mode === 'fix');
+          const fr = +o.fr, ip = +o.ip, op = +o.op;
+          curFrEl.textContent = Number.isFinite(fr) ? fr : '-';
+          curIpEl.textContent = Number.isFinite(ip) ? ip : '-';
+          curOpEl.textContent = Number.isFinite(op) ? op : '-';
+          const sec = (Number.isFinite(fr) && Number.isFinite(ip) && Number.isFinite(op) && fr > 0) ? (op - ip) / fr : NaN;
+          curSecEl.textContent = Number.isFinite(sec) ? sec.toFixed(3) : '-';
+          statsEl.hidden = false;
+        } catch { statsEl.hidden = true; }
       }
-    });
+      const deepClone = o => (window.structuredClone ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
-    // 应用修改
-    $('applyBtn').onclick = async () => {
-      if (!originalData) return;
-      showLoading('处理中...');
+      // —— 小工具：只把帧值取整 —— //
+function roundFrameInt(v){
+  return (typeof v === 'number' && Number.isFinite(v)) ? Math.round(v) : v;
+}
+
+/**
+ * —— 兼容修复 ——  
+ * 1) 渐变填充 "ty":"gf" => 强制 t=1  
+ * 2) 顶层及各层的 ip/op/st 取整
+ */
+function normalizeForMobile(root){
+  if (!root || typeof root !== 'object') return root;
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (!cur || typeof cur !== 'object') continue;
+
+   // 1) 渐变填充 —— 保持原始 t（1=线性，2=径向），不要强制改动
+// if (cur.ty === 'gf') cur.t = 1;
+
+    // 2) 帧边界取整
+    if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
+    if ('op' in cur) cur.op = roundFrameInt(cur.op);
+    if ('st' in cur) cur.st = roundFrameInt(cur.st);
+
+    // 递归
+    for (const k in cur){
+      const v = cur[k];
+      if (v && typeof v === 'object') stack.push(v);
+    }
+  }
+  return root;
+}
+
+// 只把“关键帧对象”的 t 当作时间：同时具备 t 和 s/e/i/o/h/hold/k 之一才算关键帧
+function isKeyframeTime(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  if (!('t' in obj)) return false;
+  return ('s' in obj) || ('e' in obj) || ('i' in obj) || ('o' in obj) || ('h' in obj) || ('hold' in obj) || ('k' in obj);
+}
+
+// 修正渐变类型：gf.t 只能是 1(线性) 或 2(径向)；如果变成小数，回退到 1
+function fixGradientType(root){
+  const st=[root];
+  while(st.length){
+    const cur=st.pop();
+    if (!cur || typeof cur!=='object') continue;
+
+    if (cur.ty === 'gf') {
+      if (cur.t !== 1 && cur.t !== 2) cur.t = 1;
+    }
+    // 某些导出结构没有 ty，但具备 g/s/e 的也是渐变定义节点
+    if (('g' in cur) && ('s' in cur) && ('e' in cur) && !('k' in cur)) {
+      if (cur.t !== 1 && cur.t !== 2) cur.t = 1;
+    }
+    for (const k in cur){
+      const v=cur[k];
+      if (v && typeof v==='object') st.push(v);
+    }
+  }
+}
+
+
       
-      // 延迟一下让 UI 渲染
-      await new Promise(r => setTimeout(r, 50));
-      
-      try {
-        processedData = JSON.parse(JSON.stringify(originalData));
-        const mode = document.querySelector('.pill.active').dataset.mode;
-        const targetFps = parseFloat($('fpsInput').value) || 60;
-        const srcFps = processedData.fr || 30;
+// 计算对象里出现的最大关键帧时间（仅统计真正关键帧的 t）
+function getMaxKeyT(root) {
+  let maxT = 0;
+  const st = [root];
+  while (st.length) {
+    const cur = st.pop();
+    if (!cur || typeof cur !== 'object') continue;
+    if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
+    if (typeof cur.t === 'number') {
+      const isKF = ('s' in cur) || ('e' in cur) || ('i' in cur) || ('o' in cur) || ('h' in cur) || ('hold' in cur) || ('k' in cur);
+      if (isKF && cur.t > maxT) maxT = cur.t;
+    }
+    for (const k in cur) {
+      const v = cur[k];
+      if (v && typeof v === 'object') st.push(v);
+    }
+  }
+  return Math.ceil(maxT);
+}
+// —— 将 data:image/webp → data:image/png（iOS 更稳）——
+function webpDataUrlToPng(dataUrl){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/png')); // 无损 PNG，像素一致
+      }catch(e){ reject(e); }
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+async function revertEmbeddedWebPToPNG(lottieObj){
+  if (!lottieObj || !Array.isArray(lottieObj.assets)) return lottieObj;
+  for (const a of lottieObj.assets){
+    if (a && typeof a.p === 'string' && a.p.startsWith('data:image/webp;base64,')){
+      try{
+        a.p = await webpDataUrlToPng(a.p);
+        a.e = 1;
+      }catch(e){ console.warn('[iOS] WebP→PNG 失败，跳过该资源', e); }
+    }
+  }
+  return lottieObj;
+}
 
-        // 1. 先修复
-        const fixedCount = autoFix(processedData);
-        if (fixedCount > 0) console.log(`已修复 ${fixedCount} 个异常宽高`);
+// —— iOS 友好：把所有帧边界与关键帧 t 统一“保守化” ——
+// 1) 顶层与各层的 ip/op/st 取整（op>=ip+2）
+// 2) 关键帧 t 夹到 [ip, op-1]
+// 3) 关键帧数组 k 内 t 单调不减
+function ensureLegacyFriendlyTimings(root){
+  if (!root || typeof root !== 'object') return;
 
-        // 2. 根据模式处理
-        if (mode === 'scale') {
-          if (targetFps !== srcFps) {
-            const ratio = targetFps / srcFps;
-            scaleTime(processedData, ratio);
-            processedData.fr = targetFps;
+  function clampKF(obj, ip, op){
+    const st=[obj];
+    while(st.length){
+      const cur=st.pop();
+      if(!cur||typeof cur!=='object') continue;
+
+      if (typeof cur.t==='number'){
+        const isKF=('s'in cur)||('e'in cur)||('i'in cur)||('o'in cur)||('h'in cur)||('hold'in cur)||('k'in cur);
+        if (isKF){
+          if (Number.isFinite(ip)) cur.t = Math.max(cur.t, ip);
+          if (Number.isFinite(op)) cur.t = Math.min(cur.t, op-1);
+        }
+      }
+      if (Array.isArray(cur.k)){
+        let lastT=-Infinity;
+        for (const node of cur.k){
+          if (node && typeof node==='object' && typeof node.t==='number'){
+            if (Number.isFinite(ip)) node.t=Math.max(node.t, ip);
+            if (Number.isFinite(op)) node.t=Math.min(node.t, op-1);
+            if (node.t < lastT) node.t = lastT; // 单调不减
+            lastT = node.t;
           }
-        } else if (mode === 'fps') {
-          processedData.fr = targetFps;
         }
-        
-        // 3. 渲染右侧
-        if (anim2) anim2.destroy();
-        $('stage2').innerHTML = '';
-        anim2 = lottie.loadAnimation({
-          container: $('stage2'), renderer: 'svg', loop: true, autoplay: true, 
-          animationData: JSON.parse(JSON.stringify(processedData))
-        });
-        
-        $('info2').innerText = `(${processedData.fr} fps)`;
-        $('dlBtn').disabled = false;
-        $('dlBtn').innerText = `下载 (${processedData.fr} fps)`;
-        
-        showToast('处理完成');
-      } catch (err) {
-        console.error(err);
-        alert('处理出错');
       }
-      hideLoading();
-    };
+      for (const k in cur){
+        const v=cur[k];
+        if (v && typeof v==='object') st.push(v);
+      }
+    }
+  }
 
-    // 下载
-    $('dlBtn').onclick = () => {
-      const blob = new Blob([JSON.stringify(processedData)], {type: 'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName.replace('.json', '_fixed.json');
-      a.click();
-    };
-    
-    // 拖拽
-    const ub = $('uploadBox');
-    ub.ondragover = (e) => { e.preventDefault(); ub.classList.add('dragover'); };
-    ub.ondragleave = (e) => { e.preventDefault(); ub.classList.remove('dragover'); };
-    ub.ondrop = (e) => {
-      e.preventDefault(); ub.classList.remove('dragover');
-      if(e.dataTransfer.files.length) {
-        $('fileInput').files = e.dataTransfer.files;
-        $('fileInput').dispatchEvent(new Event('change'));
+  if (typeof root.ip==='number') root.ip=Math.floor(root.ip);
+  if (typeof root.st==='number') root.st=Math.floor(root.st);
+  if (typeof root.op==='number') root.op=Math.ceil(root.op);
+  if (Number.isFinite(root.ip) && Number.isFinite(root.op) && root.op<root.ip+2) root.op=root.ip+2;
+  clampKF(root, root.ip, root.op);
+
+  const st=[root];
+  while(st.length){
+    const cur=st.pop();
+    if(!cur||typeof cur!=='object') continue;
+    if(Array.isArray(cur)){ for(const v of cur) st.push(v); continue; }
+
+    if(Array.isArray(cur.layers)){
+      for(const ly of cur.layers){
+        if (typeof ly.ip==='number') ly.ip=Math.floor(ly.ip);
+        if (typeof ly.st==='number') ly.st=Math.floor(ly.st);
+        if (typeof ly.op==='number') ly.op=Math.ceil(ly.op);
+        if (Number.isFinite(ly.ip) && Number.isFinite(ly.op) && ly.op<ly.ip+2) ly.op=ly.ip+2;
+        clampKF(ly, ly.ip ?? root.ip, ly.op ?? root.op);
       }
+    }
+    for(const k in cur){
+      const v=cur[k];
+      if (v && typeof v==='object') st.push(v);
+    }
+  }
+}
+
+// 缩放完成后：确保各级 op 覆盖到 maxKeyT+1（只扩不缩）
+function ensureOpCoversKeys(root){
+  if (!root || typeof root !== 'object') return;
+
+  // 顶层合成
+  const compMax = getMaxKeyT(root);
+  if (typeof root.op === 'number') root.op = Math.max(Math.ceil(root.op), compMax + 1);
+  else root.op = compMax + 1;
+
+  // 各层/子合成
+  const st = [root];
+  while (st.length){
+    const cur = st.pop();
+    if (!cur || typeof cur !== 'object') continue;
+    if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
+
+    if (Array.isArray(cur.layers)) {
+      for (const ly of cur.layers) {
+        const lyMax = getMaxKeyT(ly);
+        if (typeof ly.op === 'number') ly.op = Math.max(Math.ceil(ly.op), lyMax + 1);
+        else ly.op = lyMax + 1;
+        // 旧版更稳：确保边界为整数
+        if (typeof ly.ip === 'number') ly.ip = Math.floor(ly.ip);
+        if (typeof ly.st === 'number') ly.st = Math.floor(ly.st);
+      }
+    }
+    for (const k in cur){
+      const v = cur[k];
+      if (v && typeof v === 'object') st.push(v);
+    }
+  }
+}
+
+
+      
+      function roundFloats(root, precision=3){
+  if (!root || typeof root !== 'object') return;
+  const p = Math.max(0, Math.min(8, precision|0));
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (Array.isArray(cur)){
+      for (let i=0;i<cur.length;i++){
+        const v = cur[i];
+        if (typeof v==='number' && !Number.isInteger(v)){
+          cur[i] = +v.toFixed(p);
+        }else if (v && typeof v==='object'){
+          stack.push(v);
+        }
+      }
+    }else{
+      for (const k in cur){
+        const v = cur[k];
+        if (typeof v==='number' && !Number.isInteger(v)){
+          cur[k] = +v.toFixed(p);
+        }else if (v && typeof v==='object'){
+          stack.push(v);
+        }
+      }
+    }
+  }
+}
+
+      // === 统一数值降精度（仅对“非整数的小数”生效）===
+// 默认保留 3 位；不改整数；不改对象结构
+function roundFloats(root, precision = 3){
+  if (!root || typeof root !== 'object') return;
+  const p = Math.max(0, Math.min(8, precision|0));
+  const stack = [root];
+  while (stack.length){
+    const cur = stack.pop();
+    if (Array.isArray(cur)){
+      for (let i=0;i<cur.length;i++){
+        const v = cur[i];
+        if (typeof v === 'number' && !Number.isInteger(v)){
+          cur[i] = +v.toFixed(p);
+        }else if (v && typeof v === 'object'){
+          stack.push(v);
+        }
+      }
+    }else{
+      for (const k in cur){
+        const v = cur[k];
+        if (typeof v === 'number' && !Number.isInteger(v)){
+          cur[k] = +v.toFixed(p);
+        }else if (v && typeof v === 'object'){
+          stack.push(v);
+        }
+      }
+    }
+  }
+}
+
+      // —— PNG → WebP（仅当更小时才替换）—— //
+function recompressToWebP(dataUrl, quality = 0.8){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const q = Math.min(1, Math.max(0.1, Number(quality)||0.8));
+        const out = canvas.toDataURL('image/webp', q);
+        resolve(out);
+      }catch(e){ reject(e); }
     };
+    img.onerror = reject;
+    img.src = dataUrl; // data:URL 无跨域问题
+  });
+}
+function dataUrlBytes(dataUrl){
+  if (typeof dataUrl !== 'string') return 0;
+  const m = dataUrl.match(/^data:[^;]+;base64,([\s\S]+)/);
+  if (!m) return 0;
+  const b64 = m[1].replace(/=+$/, '');
+  return Math.floor(b64.length * 3 / 4);
+}
+async function convertEmbeddedPNGsToWebPIfSmaller(lottieObj, quality = 0.8){
+  if (!lottieObj || !Array.isArray(lottieObj.assets)) return lottieObj;
+  const THRESHOLD = 0.98; // 新 ≤ 旧 * 0.98（至少省 2%）才替换
+  for (const asset of lottieObj.assets){
+    if (asset && typeof asset.p === 'string' && asset.p.startsWith('data:image/png;base64,')){
+      try{
+        const oldBytes = dataUrlBytes(asset.p);
+        const webp = await recompressToWebP(asset.p, quality);
+        const newBytes = dataUrlBytes(webp);
+        if (newBytes > 0 && oldBytes > 0 && newBytes <= oldBytes * THRESHOLD){
+          asset.p = webp;
+          asset.e = 1; // 保持 embedded
+        }
+      }catch(err){
+        console.warn('[PNG→WebP] 跳过：', err);
+      }
+    }
+  }
+  return lottieObj;
+}
+
+
+      /* ========= Lottie 时间缩放工具 ========= */
+      function scaleMarkers(markers, f) { if (!Array.isArray(markers)) return; for (const m of markers) { if (typeof m.tm === 'number') m.tm *= f; if (typeof m.dr === 'number') m.dr *= f; } }
+      function scaleTimeRemap(tm, f) {
+        if (!tm) return;
+        if (typeof tm.k === 'number') { tm.k *= f; return; }
+        if (Array.isArray(tm.k)) {
+          for (const kf of tm.k) {
+            if (kf && typeof kf.t === 'number') kf.t *= f;
+            if (kf && kf.s != null) {
+              if (typeof kf.s === 'number') kf.s *= f;
+              else if (Array.isArray(kf.s) && typeof kf.s[0] === 'number') kf.s[0] *= f;
+            }
+            if (kf && kf.e != null) {
+              if (typeof kf.e === 'number') kf.e *= f;
+              else if (Array.isArray(kf.e) && typeof kf.e[0] === 'number') kf.e[0] *= f;
+            }
+          }
+        }
+      }
+      function scaleAllKeyframeTs(obj, f) {
+        const st = [obj];
+        while (st.length) {
+          const cur = st.pop();
+          if (!cur) continue;
+          if (Array.isArray(cur)) { for (const v of cur) st.push(v); continue; }
+          if (typeof cur === 'object') {
+           if (typeof cur.t === 'number') {
+  // 渐变填充对象（ty:'gf' 或拥有 g/s/e 且不是关键帧集合）上的 t 是“类型”，绝不能缩放
+  const looksLikeGradient =
+    (cur && typeof cur === 'object') &&
+    (cur.ty === 'gf' || (('g' in cur) && ('s' in cur) && ('e' in cur) && !('k' in cur)));
+
+  // 只在真正关键帧对象上缩放 t
+  const isKF = !looksLikeGradient && (
+    ('s' in cur) || ('e' in cur) || ('i' in cur) || ('o' in cur) || ('h' in cur) || ('hold' in cur) || ('k' in cur)
+  );
+
+  if (isKF) {
+    cur.t *= f;
+  }
+}
+
+
+            for (const k in cur) {
+              const v = cur[k];
+              if (k === 'tm' && v && typeof v === 'object') scaleTimeRemap(v, f);
+              else if (v && typeof v === 'object') st.push(v);
+            }
+          }
+        }
+      }
+      function scaleLayerInOut(layer, f) {
+        if (typeof layer.ip === 'number') layer.ip *= f;
+        if (typeof layer.op === 'number') layer.op *= f;
+        if (typeof layer.st === 'number') layer.st *= f;
+        if (layer.tm) scaleTimeRemap(layer.tm, f);
+      }
+      function scaleLayersDeep(layers, f) {
+        if (!Array.isArray(layers)) return;
+        for (const ly of layers) {
+          scaleLayerInOut(ly, f);
+          if (Array.isArray(ly.layers)) scaleLayersDeep(ly.layers, f);
+        }
+      }
+      function scaleAllTimings(root, f) {
+        scaleAllKeyframeTs(root, f);
+        if (typeof root.ip === 'number') root.ip *= f;
+        if (typeof root.op === 'number') root.op *= f;
+        scaleLayersDeep(root.layers, f);
+        if (Array.isArray(root.assets)) {
+          for (const a of root.assets) {
+            if (Array.isArray(a.layers)) scaleLayersDeep(a.layers, f);
+            if (typeof a.ip === 'number') a.ip *= f;
+            if (typeof a.op === 'number') a.op *= f;
+            if (typeof a.st === 'number') a.st *= f;
+          }
+        }
+        scaleMarkers(root.markers, f);
+      }
+
+      /* ========= 预览（强制透明背景） ========= */
+      function sanitizeForPreview(src) { const o = deepClone(src); if (o && typeof o.bg !== 'undefined') delete o.bg; return o; }
+      function loadAnim(container, data) {
+        container.innerHTML = ''; container.style.background = 'transparent';
+        const anim = lottie.loadAnimation({ container, renderer: 'svg', loop: true, autoplay: true, animationData: sanitizeForPreview(data) });
+        anim.addEventListener('DOMLoaded', () => { try { const svg = anim.renderer?.svgElement; if (svg) svg.style.background = 'transparent'; } catch (_) { } });
+        return anim;
+      }
+      function refreshPlayers() {
+        if (originalObj) { if (anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
+        if (processedObj) { if (anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
+      }
+
+      // 读取 File 为 UTF-8 文本，带降级与明确报错
+async function readFileAsTextUTF8(file) {
+  if (!file) throw new Error('未选择文件');
+  // 优先走现代 API
+  if (typeof file.text === 'function') {
+    return await file.text();
+  }
+  // 旧浏览器降级
+  return await new Promise((resolve, reject) => {
+    try {
+      const r = new FileReader();
+      r.onerror = () => reject(new Error('读取失败：' + (r.error?.message || 'FileReader error')));
+      // 强制以 UTF-8 读取，避免某些平台编码误判
+      r.onload = () => resolve(String(r.result || ''));
+      if (r.readAsText.length >= 2) {
+        // 某些内核支持第二个参数 encoding
+        r.readAsText(file, 'utf-8');
+      } else {
+        r.readAsText(file);
+      }
+    } catch (e) {
+      reject(new Error('读取失败：' + e.message));
+    }
+  });
+}
+
+// 去 BOM + 允许常见注释（//、/* */）+ 修整空白
+function preprocessJsonText(raw) {
+  let s = String(raw ?? '');
+  // 去 BOM
+  if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+  // 只在看起来是纯文本 JSON 时移除注释（避免错误删除字符串里的//）
+  // 简单实用的 JSONC 处理：去掉行注释与块注释
+  s = s
+    .replace(/^\s*\/\/.*$/gm, '')              // 行注释 //
+    .replace(/\/\*[\s\S]*?\*\//g, '')          // 块注释 /* */
+    .trim();
+  return s;
+}
+
+// 更明确的 JSON 解析报错
+function safeParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    // 给出更直观的提示
+    throw new Error('JSON 解析失败：' + (e.message || '未知错误'));
+  }
+}
+
+     async function handleFile(file){
+  showLoading('正在载入 JSON…');
+  try{
+    if (!file) throw new Error('未选择文件');
+
+    // 允许非 .json 的后缀（比如导出时忘改名），但给出提示
+    const looksJson = /\.json$/i.test(file.name);
+    if (!looksJson) showToast('提示：文件后缀不是 .json，也尝试解析');
+
+    // 读取文本（更健壮）
+    const raw = await readFileAsTextUTF8(file);
+
+    // 预处理：去 BOM、注释、首尾空白
+    const cleaned = preprocessJsonText(raw);
+
+    // 快速健诊：明显非 JSON
+    if (!cleaned || (cleaned[0] !== '{' && cleaned[0] !== '[')) {
+      throw new Error('文件内容不是有效的 JSON 文本（开头不是 { 或 [ ）');
+    }
+
+    // 解析
+    const obj = safeParseJson(cleaned);
+
+    // —— 到这里已成功 ——：再清旧状态，避免误删节点或事件
+    clearPreviousFileUI();
+
+    fileName = file.name || 'lottie.json';
+    originalObj = obj;
+    processedObj = null;
+
+    updateStats(originalObj);
+    refreshPlayers();
+
+    applyBtn.disabled = false;
+    downloadBtn.disabled = true;
+    hasApplied = false;
+
+    showToast('已载入：' + fileName);
+  }catch(err){
+    console.error('[handleFile]', err);
+    // 更友好的错误提示
+    showToast(err?.message || '文件处理失败或 JSON 解析失败');
+  }finally{
+    hideLoading();
+  }
+}
+
+      /* ========= 上传交互：点击 / 拖拽 ========= */
+      // 如果不是<label for=file>，才兜底触发
+      if (pickBtn && pickBtn.tagName !== 'LABEL') {
+        pickBtn.addEventListener('click', () => fileInput.click());
+      }
+
+      // 全局阻止浏览器接管拖拽（避免直接打开文件覆盖页面）
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+        window.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      });
+
+      // 拖拽视觉反馈（计数避免抖动）
+      let dragCounter = 0;
+      uploadBox.addEventListener('dragenter', () => { dragCounter++; uploadBox.classList.add('dragover'); });
+      uploadBox.addEventListener('dragleave', () => { dragCounter = Math.max(0, dragCounter - 1); if (dragCounter === 0) uploadBox.classList.remove('dragover'); });
+      uploadBox.addEventListener('dragover', () => { /* 必须 preventDefault 才能触发 drop */ });
+
+      // 接收文件（拖拽）
+      uploadBox.addEventListener('drop', async e => {
+        dragCounter = 0; uploadBox.classList.remove('dragover');
+        const files = e.dataTransfer?.files;
+        if (!files || !files.length) { showToast('没有检测到文件'); return; }
+        const f = Array.from(files).find(x => /\.json$/i.test(x.name)) || files[0];
+        await handleFile(f);
+      });
+
+      // 选择文件（点击）
+      fileInput.addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0];
+        await handleFile(f);
+        // 清空以便两次选择同名文件也会触发 change
+        e.target.value = '';
+      });
+
+      /* ========= 模式选择 ========= */
+      modeGroup.addEventListener('click', e => {
+        const pill = e.target.closest('.pill');
+        if (!pill) return;
+        [...modeGroup.children].forEach(el => el.classList.remove('active'));
+        pill.classList.add('active');
+        activeMode = pill.dataset.mode;
+        // 切换模式后需要重新“应用”才能下载
+        hasApplied = false;
+        downloadBtn.disabled = true;
+      });
+// —— Loading 控制 —— //
+const loadingEl = document.getElementById('loading');
+const loadingTextEl = document.getElementById('loadingText');
+
+function showLoading(msg='处理中…'){
+  if (loadingTextEl) loadingTextEl.textContent = msg;
+  if (loadingEl){
+    loadingEl.hidden = false;            // ← 打开
+    loadingEl.setAttribute('aria-busy', 'true');
+  }
+  if (applyBtn) applyBtn.disabled = true;
+  if (downloadBtn) downloadBtn.disabled = true;
+}
+
+function hideLoading(){
+  if (loadingEl){
+    loadingEl.hidden = true;             // ← 关闭
+    loadingEl.setAttribute('aria-busy', 'false');
+  }
+  if (originalObj) applyBtn.disabled = false;
+  if (downloadBtn) downloadBtn.disabled = !hasApplied;
+}
+
+      // —— 清空旧文件与预览 —— //
+function clearPreviousFileUI(reason){
+  try {
+    if (anim1) { anim1.destroy(); anim1 = null; }
+    if (anim2) { anim2.destroy(); anim2 = null; }
+  } catch(_){}
+
+  stage1.innerHTML = '';
+  stage2.innerHTML = '';
+  statsEl.hidden = true;
+
+  originalObj = null;
+  processedObj = null;
+  hasApplied = false;
+  fileName = 'lottie.json';
+
+  if (fpsInp) fpsInp.value = '';
+  if (applyBtn) applyBtn.disabled = true;
+  if (downloadBtn) downloadBtn.disabled = true;
+
+  // 只清空文件选择器的值，不移除节点
+  if (fileInput) fileInput.value = '';
+
+  if (reason) showToast(reason);
+}
+
+/* 初始化时再保险关一次（如果某处意外打开了） */
+hideLoading();
+
+
+      /* ========= 下载工具 ========= */
+      function autoDownload(name, text) {
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 800);
+      }
+
+      /* ========= “应用”逻辑：只计算并预览，不下载 ========= */
+     applyBtn.addEventListener('click', async () => {
+
+        if (!originalObj) { showToast('请先上传 JSON 文件'); return; }
+        const newFr = +fpsInp.value;
+        if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
+
+        const obj = deepClone(originalObj);
+        const oldFr = +obj.fr; const hadFr = Number.isFinite(oldFr) && oldFr > 0;
+        const ip = +obj.ip, op = +obj.op; const hadRange = Number.isFinite(ip) && Number.isFinite(op);
+        const factor = hadFr ? (newFr / oldFr) : 1;
+
+        try {
+          if (activeMode === 'just-fr') {
+            obj.fr = newFr;
+
+          } else if (activeMode === 'keep-duration') {
+            obj.fr = newFr;
+            if (hadRange) {
+              const secs = (op - ip) / (hadFr ? oldFr : newFr);
+              obj.op = ip + secs * newFr;
+            }
+            const rf = (hadFr ? (newFr / oldFr) : 1);
+            if (Array.isArray(obj.layers)) {
+              for (const ly of obj.layers) {
+                if (typeof ly.ip === 'number') ly.ip *= rf;
+                if (typeof ly.op === 'number') ly.op *= rf;
+                if (typeof ly.st === 'number') ly.st *= rf;
+              }
+            }
+            if (Array.isArray(obj.assets)) {
+              for (const a of obj.assets) {
+                if (Array.isArray(a.layers)) {
+                  for (const ly of a.layers) {
+                    if (typeof ly.ip === 'number') ly.ip *= rf;
+                    if (typeof ly.op === 'number') ly.op *= rf;
+                    if (typeof ly.st === 'number') ly.st *= rf;
+                  }
+                }
+              }
+            }
+            if (Array.isArray(obj.markers)) {
+              for (const m of obj.markers) {
+                if (typeof m.tm === 'number') m.tm *= rf;
+                if (typeof m.dr === 'number') m.dr *= rf;
+              }
+            }
+
+} else if (activeMode === 'scale-inout') {
+  // 只缩放入出点（保留关键帧t）
+  obj.fr = newFr;
+  if (hadFr) {
+    const f = newFr / oldFr; // 让总时长保持一致：秒 = (op-ip)/fr
+    // 仅缩放 ip/op/st（不动关键帧 t）
+    if (typeof obj.ip === 'number') obj.ip *= f;
+    if (typeof obj.op === 'number') obj.op *= f;
+    if (Array.isArray(obj.layers)) {
+      for (const ly of obj.layers) {
+        if (typeof ly.ip === 'number') ly.ip *= f;
+        if (typeof ly.op === 'number') ly.op *= f;
+        if (typeof ly.st === 'number') ly.st *= f;
+      }
+    }
+    if (Array.isArray(obj.assets)) {
+      for (const a of obj.assets) {
+        if (Array.isArray(a.layers)) {
+          for (const ly of a.layers) {
+            if (typeof ly.ip === 'number') ly.ip *= f;
+            if (typeof ly.op === 'number') ly.op *= f;
+            if (typeof ly.st === 'number') ly.st *= f;
+          }
+        }
+        if (typeof a.ip === 'number') a.ip *= f;
+        if (typeof a.op === 'number') a.op *= f;
+        if (typeof a.st === 'number') a.st *= f;
+      }
+    }
+    // markers 也按帧缩放，保持相对时序
+    if (Array.isArray(obj.markers)) {
+      for (const m of obj.markers) {
+        if (typeof m.tm === 'number') m.tm *= f;
+        if (typeof m.dr === 'number') m.dr *= f;
+      }
+    }
+  } else {
+    // 没检测到旧 fr，只设置新的 fr（不再缩放任何时间）
+    showToast('未检测到旧帧率，仅设置 fr（关键帧已保留）');
+  }
+
+            
+       } else { // 'scale-keyframes'
+  obj.fr = newFr;
+  if (hadFr) {
+    scaleAllTimings(obj, newFr / oldFr);
+        fixGradientType(obj); // 修正 gf.t 误改为小数的问题
+
+    ensureOpCoversKeys(obj);            // 先确保 op 覆盖所有关键帧
+    ensureLegacyFriendlyTimings(obj);   // 再把所有 t 夹到 [ip, op-1] 且取整边界
+  } else {
+    showToast('未检测到旧帧率，仅设置 fr');
+  }
+}
+
+
+
+
+          
+          // —— 新增：做兼容修复 —— //
+          normalizeForMobile(obj);
+          roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
+          
+          await revertEmbeddedWebPToPNG(obj); // iOS：把任何嵌入的 webp 转回 png
+
+
+          processedObj = obj;
+          updateStats(processedObj);  // 用修改后的数据更新统计
+          refreshPlayers();           // 右侧预览更新
+
+          hasApplied = true;
+          downloadBtn.disabled = false; // 允许下载
+          showToast('已应用，预览已更新');
+        } catch (e) {
+          console.error(e);
+          showToast('应用失败');
+        }
+      });
+
+      /* ========= “下载”逻辑：必须先“应用” ========= */
+      downloadBtn.addEventListener('click', () => {
+        if (!processedObj || !hasApplied) {
+          showToast('请先点击“应用”');
+          return;
+        }
+        const newFr = +fpsInp.value || processedObj.fr || 0;
+        const outName = (fileName || 'lottie.json')
+          .replace(/\.json$/i, '')
+          + `-fr${newFr}${activeMode === 'scale-keyframes' ? '-scaled' : activeMode === 'keep-duration' ? '-keepdur' : ''}.json`;
+
+        autoDownload(outName, JSON.stringify(processedObj));
+
+        showToast('已下载：' + outName);
+      });
+
+      /* ========= 播放控制 ========= */
+      p1Play.addEventListener('click', () => anim1 && anim1.goToAndPlay(0, true));
+      p1Pause.addEventListener('click', () => anim1 && anim1.pause());
+      p1Stop.addEventListener('click', () => anim1 && anim1.stop());
+      p2Play.addEventListener('click', () => anim2 && anim2.goToAndPlay(0, true));
+      p2Pause.addEventListener('click', () => anim2 && anim2.pause());
+      p2Stop.addEventListener('click', () => anim2 && anim2.stop());
+    })();
 
   </script>
+  <footer class="footer">
+    <a href="https://www.feishu.cn/invitation/page/add_contact/?token=ddahf0f4-5350-44be-abd2-956d2c0a577a&unique_id=ZYyg0Hbu5gpY66zPvQkbIA==" 
+     class="footer-content" target="_blank" rel="noopener noreferrer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <title>mail_send_line</title>
+       <g id="mail_send_line" fill="none">
+        <path d="M24 0v24H0V0z"/>
+        <path fill="currentColor" d="M20 4a2 2 0 0 1 1.995 1.85L22 6v12a2 2 0 0 1-1.85 1.995L20 20H4a2 2 0 0 1-1.995-1.85L2 18v-1h2v1h16V7.414l-6.94 6.94a1.5 1.5 0 0 1-2.007.103l-.114-.103L4 7.414V8H2V6a2 2 0 0 1 1.85-1.995L4 4zM6 13a1 1 0 1 1 0 2H1a1 1 0 1 1 0-2zm12.586-7H5.414L12 12.586zM5 10a1 1 0 0 1 .117 1.993L5 12H2a1 1 0 0 1-.117-1.993L2 10z"/>
+      </g>
+      </svg>
+      <span>Contact Eric Sun</span>
+    </a>
+  </footer>
+
+<!-- Loading 覆盖层 -->
+<div id="loading" class="loading-overlay" aria-live="polite" aria-busy="false" hidden>
+  <div class="loading-box">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="loading-text" id="loadingText">正在处理…</div>
+  </div>
+</div>
+
+
 </body>
+
 </html>
