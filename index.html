@@ -6,17 +6,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lottie动画帧率修改和json预览工具</title>
   <meta name="description" content="自由的修改Lottie动画帧率并支持预览">
-  <link rel="icon" href="/favicon.ico" sizes="any"> <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+  <!-- ✅ favicon / 浏览器标签图标 -->
+  <link rel="icon" href="/favicon.ico" sizes="any"> <!-- 16x16 / 32x32 内嵌多分辨率 -->
+  <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
   <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+  <!-- ✅ iOS Safari / Android 主屏幕图标 -->
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/site.webmanifest">
 
+  <!-- ✅ Open Graph / 社交分享 -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://example.com/">
   <meta property="og:title" content="Lottie动画帧率修改和Json预览工具">
   <meta property="og:description" content="自由的修改Lottie动画帧率并支持预览。">
   <meta property="og:image" content="https://example.com/og-image.png">
 
+  <!-- ✅ Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://example.com/">
   <meta name="twitter:title" content="Lottie动画帧率修改和Json预览工具">
@@ -182,7 +187,44 @@
       transform: translateY(1px);
     }
 
-    .upload-btn:disabled {
+    .upload-tip {
+      position: absolute;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #94928D;
+    }
+
+    .upload-box.dragover {
+      background: #f4f8ee;
+      border-color: #cfe0a6;
+    }
+
+    .fps-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin: 0px 0 24px;
+    }
+
+    .apply-btn {
+      height: 44px;
+      padding: 0 20px;
+      border: none;
+      border-radius: 12px;
+      background: #47453E;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .apply-btn:active {
+      background: #2f2b26;
+      transform: translateY(1px);
+    }
+
+    .apply-btn:disabled {
       opacity: .5;
       cursor: not-allowed;
     }
@@ -432,6 +474,7 @@
       }
     }
   </style>
+  <!-- 使用 unpkg 镜像，减少加载失败概率 -->
   <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 
    <link rel="stylesheet" href="style.css">
@@ -512,11 +555,13 @@
 
       <div class="section-title" style="margin-top:24px;">目标帧率</div>
 
+      <!-- 新行：输入 + 应用按钮并排 -->
       <div class="fps-row">
         <input id="targetFr" class="fps-input" type="number" min="1" step="1" placeholder="请输入目标帧率（如 30）" />
         <button id="applyBtn" class="apply-btn" disabled>应用</button>
       </div>
 
+      <!-- 下载按钮：只有应用后才启用 -->
       <button id="downloadBtn" class="submit" disabled>下载修改后的JSON</button>
 
     </div>
@@ -650,7 +695,7 @@ function getMaxKeyT(root) {
   }
   return Math.ceil(maxT);
 }
-// —— 将 data:image/webp → data:image:png（iOS 更稳）——
+// —— 将 data:image/webp → data:image/png（iOS 更稳）——
 function webpDataUrlToPng(dataUrl){
   return new Promise((resolve, reject)=>{
     const img = new Image();
@@ -778,60 +823,7 @@ function ensureOpCoversKeys(root){
   }
 }
 
-// ✅ [新增功能] 自动修复宽高异常 (w=0, h=0)
-/**
- * 逻辑：读取主合成宽高，强制应用到所有宽高缺失或为0的 assets 和 layers
- * @param {object} lottieObj - Lottie JSON object
- */
-function autoRepairDimensions(lottieObj) {
-    if (!lottieObj) return lottieObj;
 
-    // 优先使用文件自身的 w/h，如果没有则使用 350x300（符合用户要求）
-    const mainW = lottieObj.w || 350;
-    const mainH = lottieObj.h || 300;
-    let repairCount = 0;
-
-    // 1. 强制设置主合成宽高（如果缺失，以确保子项的参照值有效）
-    if (!lottieObj.w || lottieObj.w <= 0) { lottieObj.w = mainW; repairCount++; }
-    if (!lottieObj.h || lottieObj.h <= 0) { lottieObj.h = mainH; repairCount++; }
-
-
-    // 递归修复 Layers (ty=1 Solid Layer, ty=0 Precomposition Layer)
-    const fixLayers = (layers) => {
-        if (!Array.isArray(layers)) return;
-        layers.forEach(layer => {
-            // Solid Layer (ty=1) 必须有宽高
-            if (layer.ty === 1) {
-                if (!layer.w || layer.w <= 0) { layer.w = mainW; repairCount++; }
-                if (!layer.h || layer.h <= 0) { layer.h = mainH; repairCount++; }
-            }
-            // 递归修复子层 (预合成内的层)
-            if (Array.isArray(layer.layers)) fixLayers(layer.layers);
-        });
-    }
-
-    // 2. 修复 Assets (预合成/图片)
-    if (Array.isArray(lottieObj.assets)) {
-        lottieObj.assets.forEach(asset => {
-            // 检查是否有宽高属性（主要是预合成或嵌入图片）
-            if (asset && (asset.p || Array.isArray(asset.layers))) {
-                if (!asset.w || asset.w <= 0) { asset.w = mainW; repairCount++; }
-                if (!asset.h || asset.h <= 0) { asset.h = mainH; repairCount++; }
-            }
-            // 递归修复预合成内的层
-            if (Array.isArray(asset.layers)) fixLayers(asset.layers);
-        });
-    }
-
-    // 3. 修复主合成的顶层 Layers
-    if (Array.isArray(lottieObj.layers)) {
-        fixLayers(lottieObj.layers);
-    }
-    
-    // if (repairCount > 0) { console.log(`[Repair] 自动修复了 ${repairCount} 个宽高异常项 (W/H set to ${mainW}x${mainH})`); }
-
-    return lottieObj;
-}
       
       function roundFloats(root, precision=3){
   if (!root || typeof root !== 'object') return;
@@ -1244,15 +1236,6 @@ hideLoading();
         if (!Number.isFinite(newFr) || newFr <= 0) { showToast('目标帧率无效'); return; }
 
         const obj = deepClone(originalObj);
-        
-        // **********************************************
-        // ✅ [新增/默认修复功能] 自动运行宽高修复
-        // **********************************************
-        autoRepairDimensions(obj);
-        // **********************************************
-        // ✅ [新增/默认修复功能] 结束
-        // **********************************************
-
         const oldFr = +obj.fr; const hadFr = Number.isFinite(oldFr) && oldFr > 0;
         const ip = +obj.ip, op = +obj.op; const hadRange = Number.isFinite(ip) && Number.isFinite(op);
         const factor = hadFr ? (newFr / oldFr) : 1;
@@ -1412,6 +1395,7 @@ hideLoading();
     </a>
   </footer>
 
+<!-- Loading 覆盖层 -->
 <div id="loading" class="loading-overlay" aria-live="polite" aria-busy="false" hidden>
   <div class="loading-box">
     <div class="spinner" aria-hidden="true"></div>
