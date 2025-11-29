@@ -517,9 +517,10 @@
           <div class="player-head">
             <div class="ph-title">源文件预览</div>
             <div class="ph-actions">
-              <button class="sm-btn" id="p1Play">播</button>
-              <button class="sm-btn" id="p1Pause">停</button>
-              <button class="sm-btn" id="p1Stop">复</button>
+              <button class="sm-btn" id="p1Toggle">暂停</button>
+                <button class="sm-btn" id="p1Reset">复位</button>
+                <button class="sm-btn" id="p1Png">存PNG</button>
+                <button class="sm-btn" id="p1Svg">存SVG</button>
             </div>
           </div>
           <div class="frame">
@@ -531,9 +532,10 @@
           <div class="player-head">
             <div class="ph-title">修改后预览</div>
             <div class="ph-actions">
-              <button class="sm-btn" id="p2Play">播</button>
-              <button class="sm-btn" id="p2Pause">停</button>
-              <button class="sm-btn" id="p2Stop">复</button>
+             <button class="sm-btn" id="p2Toggle">暂停</button>
+  <button class="sm-btn" id="p2Reset">复位</button>
+  <button class="sm-btn" id="p2Png">存PNG</button>
+  <button class="sm-btn" id="p2Svg">存SVG</button>
             </div>
           </div>
           <div class="frame">
@@ -577,8 +579,9 @@
       const uploadBox = $('#uploadBox'), fileInput = $('#file'), pickBtn = $('#btnPick');
       const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
       const stage1 = $('#stage1'), stage2 = $('#stage2');
-      const p1Play = $('#p1Play'), p1Pause = $('#p1Pause'), p1Stop = $('#p1Stop');
-      const p2Play = $('#p2Play'), p2Pause = $('#p2Pause'), p2Stop = $('#p2Stop');
+const p1Toggle = $('#p1Toggle'), p1Reset = $('#p1Reset'), p1Png = $('#p1Png'), p1Svg = $('#p1Svg');
+const p2Toggle = $('#p2Toggle'), p2Reset = $('#p2Reset'), p2Png = $('#p2Png'), p2Svg = $('#p2Svg');
+
       const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
       const applyBtn = $('#applyBtn'), downloadBtn = $('#downloadBtn');
 
@@ -1039,9 +1042,18 @@ async function convertEmbeddedPNGsToWebPIfSmaller(lottieObj, quality = 0.8){
         return anim;
       }
       function refreshPlayers() {
-        if (originalObj) { if (anim1) anim1.destroy(); anim1 = loadAnim(stage1, originalObj); }
-        if (processedObj) { if (anim2) anim2.destroy(); anim2 = loadAnim(stage2, processedObj); }
-      }
+  if (originalObj) {
+    if (anim1) anim1.destroy();
+    anim1 = loadAnim(stage1, originalObj);
+    if (p1Toggle) p1Toggle.textContent = '暂停';
+  }
+  if (processedObj) {
+    if (anim2) anim2.destroy();
+    anim2 = loadAnim(stage2, processedObj);
+    if (p2Toggle) p2Toggle.textContent = '暂停';
+  }
+}
+
 
       // 读取 File 为 UTF-8 文本，带降级与明确报错
 async function readFileAsTextUTF8(file) {
@@ -1401,13 +1413,123 @@ autoDownload(outName, JSON.stringify(outObj));
         showToast('已下载：' + outName);
       });
 
-      /* ========= 播放控制 ========= */
-      p1Play.addEventListener('click', () => anim1 && anim1.goToAndPlay(0, true));
-      p1Pause.addEventListener('click', () => anim1 && anim1.pause());
-      p1Stop.addEventListener('click', () => anim1 && anim1.stop());
-      p2Play.addEventListener('click', () => anim2 && anim2.goToAndPlay(0, true));
-      p2Pause.addEventListener('click', () => anim2 && anim2.pause());
-      p2Stop.addEventListener('click', () => anim2 && anim2.stop());
+     /* ========= 预览控制（暂停/播放、复位、存PNG、存SVG） ========= */
+
+function baseNameNoExt(name){
+  return String(name || 'lottie').replace(/\.json$/i, '').replace(/[\\\/:*?"<>|]+/g, '-');
+}
+function getFrameInt(anim){
+  const f = (anim && typeof anim.currentFrame === 'number') ? anim.currentFrame : 0;
+  return Math.max(0, Math.round(f));
+}
+function setToggleLabel(btn, playing){
+  if (!btn) return;
+  btn.textContent = playing ? '暂停' : '播放';
+}
+function togglePlayPause(anim, btn){
+  if (!anim) return;
+  if (anim.isPaused) { anim.play();  setToggleLabel(btn, true); }
+  else              { anim.pause(); setToggleLabel(btn, false); }
+}
+function resetToFirstFrame(anim, btn){
+  if (!anim) return;
+  anim.goToAndStop(0, true); // 停到第一帧
+  setToggleLabel(btn, false); // 复位后应显示“播放”
+}
+function downloadBlob(filename, blob){
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+}
+function cloneSvgForExport(svg, w, h){
+  const clone = svg.cloneNode(true);
+  if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  if (!clone.getAttribute('xmlns:xlink')) clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  if (w && h){
+    clone.setAttribute('width', String(w));
+    clone.setAttribute('height', String(h));
+  }
+  if (!clone.getAttribute('viewBox') && w && h){
+    clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  }
+  return clone;
+}
+async function saveCurrentFrameSVG(anim, namePrefix){
+  const svg = anim?.renderer?.svgElement;
+  if (!svg) { showToast('当前预览不是 SVG 渲染，无法存SVG'); return; }
+  const w = anim?.animationData?.w;
+  const h = anim?.animationData?.h;
+  const frame = getFrameInt(anim);
+
+  const clone = cloneSvgForExport(svg, w, h);
+  const xml = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  downloadBlob(`${namePrefix}-f${frame}.svg`, blob);
+  showToast('已保存 SVG');
+}
+async function saveCurrentFramePNG(anim, namePrefix){
+  const svg = anim?.renderer?.svgElement;
+  if (!svg) { showToast('当前预览不是 SVG 渲染，无法存PNG'); return; }
+
+  const w = anim?.animationData?.w || svg.viewBox?.baseVal?.width || svg.getBoundingClientRect().width || 512;
+  const h = anim?.animationData?.h || svg.viewBox?.baseVal?.height || svg.getBoundingClientRect().height || 512;
+  const frame = getFrameInt(anim);
+
+  const clone = cloneSvgForExport(svg, w, h);
+  const xml = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  try{
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try{
+          const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => {
+            if (!blob) { reject(new Error('toBlob failed')); return; }
+            downloadBlob(`${namePrefix}-f${frame}.png`, blob);
+            resolve();
+          }, 'image/png');
+        } catch(e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+    showToast('已保存 PNG');
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// 默认显示“暂停”
+setToggleLabel(p1Toggle, true);
+setToggleLabel(p2Toggle, true);
+
+// 源文件预览
+p1Toggle?.addEventListener('click', () => togglePlayPause(anim1, p1Toggle));
+p1Reset ?.addEventListener('click', () => resetToFirstFrame(anim1, p1Toggle));
+p1Png   ?.addEventListener('click', () => anim1 && saveCurrentFramePNG(anim1, baseNameNoExt(fileName) + '-src'));
+p1Svg   ?.addEventListener('click', () => anim1 && saveCurrentFrameSVG(anim1, baseNameNoExt(fileName) + '-src'));
+
+// 修改后预览
+p2Toggle?.addEventListener('click', () => togglePlayPause(anim2, p2Toggle));
+p2Reset ?.addEventListener('click', () => resetToFirstFrame(anim2, p2Toggle));
+p2Png   ?.addEventListener('click', () => anim2 && saveCurrentFramePNG(anim2, baseNameNoExt(fileName) + '-edited'));
+p2Svg   ?.addEventListener('click', () => anim2 && saveCurrentFrameSVG(anim2, baseNameNoExt(fileName) + '-edited'));
+
     })();
 
   </script>
