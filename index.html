@@ -636,6 +636,50 @@ function normalizeForMobile(root){
     if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
     if ('op' in cur) cur.op = roundFrameInt(cur.op);
     if ('st' in cur) cur.st = roundFrameInt(cur.st);
+/**
+ * 修复会导致部分 Lottie 播放器崩溃的「0 尺寸 precomp」
+ * - precomp layer: ty === 0 且 w/h <= 0 或缺失
+ * - precomp asset: 有 layers 字段（哪怕是空数组）但 w/h <=0 或缺失
+ * 处理方式：统一补成主合成尺寸（root.w/root.h）
+ */
+function fixZeroSizePrecomps(root){
+  if (!root || typeof root !== 'object') return root;
+
+  const compW = (typeof root.w === 'number' && root.w > 0) ? root.w : 512;
+  const compH = (typeof root.h === 'number' && root.h > 0) ? root.h : 512;
+
+  const assets = Array.isArray(root.assets) ? root.assets : [];
+
+  // 1) 先修 precomp assets（有 layers 字段的就是 precomp asset）
+  for (const a of assets){
+    if (a && typeof a === 'object' && ('layers' in a)){
+      if (!(typeof a.w === 'number' && a.w > 0)) a.w = compW;
+      if (!(typeof a.h === 'number' && a.h > 0)) a.h = compH;
+    }
+  }
+
+  // 2) 再修所有 precomp layers（ty:0），递归遍历
+  function walkLayers(layers){
+    if (!Array.isArray(layers)) return;
+    for (const ly of layers){
+      if (!ly || typeof ly !== 'object') continue;
+
+      if (ly.ty === 0){ // precomp layer
+        if (!(typeof ly.w === 'number' && ly.w > 0)) ly.w = compW;
+        if (!(typeof ly.h === 'number' && ly.h > 0)) ly.h = compH;
+      }
+
+      if (Array.isArray(ly.layers)) walkLayers(ly.layers);
+    }
+  }
+
+  walkLayers(root.layers);
+  for (const a of assets){
+    if (a && typeof a === 'object' && Array.isArray(a.layers)) walkLayers(a.layers);
+  }
+
+  return root;
+}
 
     // 递归
     for (const k in cur){
