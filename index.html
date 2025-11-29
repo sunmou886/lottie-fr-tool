@@ -1212,13 +1212,19 @@ function safeParseJson(text) {
         downloadBtn.disabled = true;
       });
 // —— Loading 控制 —— //
-const loadingEl = document.getElementById('loading');
-const loadingTextEl = document.getElementById('loadingText');
+// 删掉这两行：
+// const loadingEl = document.getElementById('loading');
+// const loadingTextEl = document.getElementById('loadingText');
+
+function getLoadingEl(){ return document.getElementById('loading'); }
+function getLoadingTextEl(){ return document.getElementById('loadingText'); }
 
 function showLoading(msg='处理中…'){
+  const loadingEl = getLoadingEl();
+  const loadingTextEl = getLoadingTextEl();
   if (loadingTextEl) loadingTextEl.textContent = msg;
   if (loadingEl){
-    loadingEl.hidden = false;            // ← 打开
+    loadingEl.hidden = false;
     loadingEl.setAttribute('aria-busy', 'true');
   }
   if (applyBtn) applyBtn.disabled = true;
@@ -1226,13 +1232,15 @@ function showLoading(msg='处理中…'){
 }
 
 function hideLoading(){
+  const loadingEl = getLoadingEl();
   if (loadingEl){
-    loadingEl.hidden = true;             // ← 关闭
+    loadingEl.hidden = true;
     loadingEl.setAttribute('aria-busy', 'false');
   }
   if (originalObj) applyBtn.disabled = false;
   if (downloadBtn) downloadBtn.disabled = !hasApplied;
 }
+
 
       // —— 清空旧文件与预览 —— //
 function clearPreviousFileUI(reason){
