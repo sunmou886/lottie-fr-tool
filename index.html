@@ -27,7 +27,41 @@
   <meta name="twitter:title" content="Lottie动画帧率修改和Json预览工具">
   <meta name="twitter:description" content="自由的修改Lottie动画帧率并支持预览。">
   <meta name="twitter:image" content="https://example.com/og-image.png">
+<style>
+    .preview-progress {
+      padding: 12px 48px;
+    }
 
+    .preview-progress input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 10px;
+      border-radius: 999px;
+      background: #444;
+      outline: none;
+    }
+
+    .preview-progress input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #444;
+      cursor: pointer;
+    }
+
+    .preview-progress input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #444;
+      cursor: pointer;
+    }
+  </style>
   <style>
     :root {
       --bg: #f7f6f3;
@@ -1523,12 +1557,37 @@ p1Toggle?.addEventListener('click', () => togglePlayPause(anim1, p1Toggle));
 p1Reset ?.addEventListener('click', () => resetToFirstFrame(anim1, p1Toggle));
 p1Png   ?.addEventListener('click', () => anim1 && saveCurrentFramePNG(anim1, baseNameNoExt(fileName) + '-src'));
 p1Svg   ?.addEventListener('click', () => anim1 && saveCurrentFrameSVG(anim1, baseNameNoExt(fileName) + '-src'));
+      <!-- 源文件预览区域底部 -->
+<div class="preview-progress">
+  <input
+    id="sourceProgress"
+    type="range"
+    min="0"
+    max="1"
+    step="0.001"
+    value="0"
+    disabled
+  />
+</div>
+
 
 // 修改后预览
 p2Toggle?.addEventListener('click', () => togglePlayPause(anim2, p2Toggle));
 p2Reset ?.addEventListener('click', () => resetToFirstFrame(anim2, p2Toggle));
 p2Png   ?.addEventListener('click', () => anim2 && saveCurrentFramePNG(anim2, baseNameNoExt(fileName) + '-edited'));
 p2Svg   ?.addEventListener('click', () => anim2 && saveCurrentFrameSVG(anim2, baseNameNoExt(fileName) + '-edited'));
+    <div class="preview-progress">
+  <input
+    id="editedProgress"
+    type="range"
+    min="0"
+    max="1"
+    step="0.001"
+    value="0"
+    disabled
+  />
+</div>
+
 
     })();
 
