@@ -636,7 +636,17 @@ function normalizeForMobile(root){
     if ('ip' in cur) cur.ip = roundFrameInt(cur.ip);
     if ('op' in cur) cur.op = roundFrameInt(cur.op);
     if ('st' in cur) cur.st = roundFrameInt(cur.st);
-/**
+    
+    // 递归
+    for (const k in cur){
+      const v = cur[k];
+      if (v && typeof v === 'object') stack.push(v);
+    }
+  }
+  return root;
+}
+
+      /**
  * 修复会导致部分 Lottie 播放器崩溃的「0 尺寸 precomp」
  * - precomp layer: ty === 0 且 w/h <= 0 或缺失
  * - precomp asset: 有 layers 字段（哪怕是空数组）但 w/h <=0 或缺失
@@ -678,15 +688,6 @@ function fixZeroSizePrecomps(root){
     if (a && typeof a === 'object' && Array.isArray(a.layers)) walkLayers(a.layers);
   }
 
-  return root;
-}
-
-    // 递归
-    for (const k in cur){
-      const v = cur[k];
-      if (v && typeof v === 'object') stack.push(v);
-    }
-  }
   return root;
 }
 
@@ -1378,7 +1379,7 @@ hideLoading();
 
 
 
-          
+          fixZeroSizePrecomps(obj); // ✅ 防崩溃：修复 0 尺寸 precomp
           // —— 新增：做兼容修复 —— //
           normalizeForMobile(obj);
           roundFloats(obj, 3); // 统一把非整数的小数保留 3 位，降低文本体积
@@ -1410,7 +1411,10 @@ hideLoading();
           .replace(/\.json$/i, '')
           + `-fr${newFr}${activeMode === 'scale-keyframes' ? '-scaled' : activeMode === 'keep-duration' ? '-keepdur' : ''}.json`;
 
-        autoDownload(outName, JSON.stringify(processedObj));
+        const outObj = deepClone(processedObj);
+fixZeroSizePrecomps(outObj);            // ✅ 下载前 반드시 修复
+autoDownload(outName, JSON.stringify(outObj));
+
 
         showToast('已下载：' + outName);
       });
