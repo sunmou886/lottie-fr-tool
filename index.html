@@ -547,35 +547,61 @@
 
     <div class="card-mid">
       <div class="players">
-        <div class="player">
-          <div class="player-head">
-            <div class="ph-title">源文件预览</div>
-            <div class="ph-actions">
-              <button class="sm-btn" id="p1Toggle">暂停</button>
-                <button class="sm-btn" id="p1Reset">复位</button>
-                <button class="sm-btn" id="p1Png">存PNG</button>
-                <button class="sm-btn" id="p1Svg">存SVG</button>
-            </div>
-          </div>
-          <div class="frame">
-            <div id="stage1" class="stage"></div>
-          </div>
-        </div>
+       <div class="player">
+  <div class="player-head">
+    <div class="ph-title">源文件预览</div>
+    <div class="ph-actions">
+      <button class="sm-btn" id="p1Toggle">暂停</button>
+      <button class="sm-btn" id="p1Reset">复位</button>
+      <button class="sm-btn" id="p1Png">存PNG</button>
+      <button class="sm-btn" id="p1Svg">存SVG</button>
+    </div>
+  </div>
+  <div class="frame">
+    <div id="stage1" class="stage"></div>
+  </div>
+  <!-- 源文件预览进度条 -->
+  <div class="preview-progress">
+    <input
+      id="p1Progress"
+      type="range"
+      min="0"
+      max="1"
+      step="0.001"
+      value="0"
+      disabled
+    />
+  </div>
+</div>
 
-        <div class="player">
-          <div class="player-head">
-            <div class="ph-title">修改后预览</div>
-            <div class="ph-actions">
-             <button class="sm-btn" id="p2Toggle">暂停</button>
-  <button class="sm-btn" id="p2Reset">复位</button>
-  <button class="sm-btn" id="p2Png">存PNG</button>
-  <button class="sm-btn" id="p2Svg">存SVG</button>
-            </div>
-          </div>
-          <div class="frame">
-            <div id="stage2" class="stage"></div>
-          </div>
-        </div>
+
+<div class="player">
+  <div class="player-head">
+    <div class="ph-title">修改后预览</div>
+    <div class="ph-actions">
+      <button class="sm-btn" id="p2Toggle">暂停</button>
+      <button class="sm-btn" id="p2Reset">复位</button>
+      <button class="sm-btn" id="p2Png">存PNG</button>
+      <button class="sm-btn" id="p2Svg">存SVG</button>
+    </div>
+  </div>
+  <div class="frame">
+    <div id="stage2" class="stage"></div>
+  </div>
+  <!-- 修改后预览进度条 -->
+  <div class="preview-progress">
+    <input
+      id="p2Progress"
+      type="range"
+      min="0"
+      max="1"
+      step="0.001"
+      value="0"
+      disabled
+    />
+  </div>
+</div>
+
       </div>
     </div>
 
@@ -1557,36 +1583,7 @@ p1Toggle?.addEventListener('click', () => togglePlayPause(anim1, p1Toggle));
 p1Reset ?.addEventListener('click', () => resetToFirstFrame(anim1, p1Toggle));
 p1Png   ?.addEventListener('click', () => anim1 && saveCurrentFramePNG(anim1, baseNameNoExt(fileName) + '-src'));
 p1Svg   ?.addEventListener('click', () => anim1 && saveCurrentFrameSVG(anim1, baseNameNoExt(fileName) + '-src'));
-      <!-- 源文件预览区域底部 -->
-<div class="preview-progress">
-  <input
-    id="sourceProgress"
-    type="range"
-    min="0"
-    max="1"
-    step="0.001"
-    value="0"
-    disabled
-  />
-</div>
-
-
-// 修改后预览
-p2Toggle?.addEventListener('click', () => togglePlayPause(anim2, p2Toggle));
-p2Reset ?.addEventListener('click', () => resetToFirstFrame(anim2, p2Toggle));
-p2Png   ?.addEventListener('click', () => anim2 && saveCurrentFramePNG(anim2, baseNameNoExt(fileName) + '-edited'));
-p2Svg   ?.addEventListener('click', () => anim2 && saveCurrentFrameSVG(anim2, baseNameNoExt(fileName) + '-edited'));
-    <div class="preview-progress">
-  <input
-    id="editedProgress"
-    type="range"
-    min="0"
-    max="1"
-    step="0.001"
-    value="0"
-    disabled
-  />
-</div>
+  
 
 
     })();
