@@ -1633,6 +1633,44 @@ p1Reset ?.addEventListener('click', () => resetToFirstFrame(anim1, p1Toggle));
 p1Png   ?.addEventListener('click', () => anim1 && saveCurrentFramePNG(anim1, baseNameNoExt(fileName) + '-src'));
 p1Svg   ?.addEventListener('click', () => anim1 && saveCurrentFrameSVG(anim1, baseNameNoExt(fileName) + '-src'));
   
+// 源文件预览进度条：拖动控制动画
+if (p1Progress) {
+  p1Progress.addEventListener('input', () => {
+    if (!anim1) return;
+    isP1Scrubbing = true;
+    const t = parseFloat(p1Progress.value); // 0~1
+    const total = anim1.totalFrames || 1;
+    const frame = t * (total - 1);
+    anim1.goToAndStop(frame, true); // 停在该帧
+    setToggleLabel(p1Toggle, false); // 此时按钮文案为“播放”
+  });
+
+  ['pointerup', 'mouseup', 'touchend', 'mouseleave'].forEach(ev => {
+    p1Progress.addEventListener(ev, () => {
+      isP1Scrubbing = false;
+      // 不恢复播放，保持停在当前帧
+    });
+  });
+}
+
+// 修改后预览进度条：拖动控制动画
+if (p2Progress) {
+  p2Progress.addEventListener('input', () => {
+    if (!anim2) return;
+    isP2Scrubbing = true;
+    const t = parseFloat(p2Progress.value);
+    const total = anim2.totalFrames || 1;
+    const frame = t * (total - 1);
+    anim2.goToAndStop(frame, true);
+    setToggleLabel(p2Toggle, false);
+  });
+
+  ['pointerup', 'mouseup', 'touchend', 'mouseleave'].forEach(ev => {
+    p2Progress.addEventListener(ev, () => {
+      isP2Scrubbing = false;
+    });
+  });
+}
 
 
     })();
