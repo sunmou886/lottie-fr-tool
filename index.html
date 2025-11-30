@@ -638,17 +638,27 @@
       /* ========= 绑定元素 ========= */
       const uploadBox = $('#uploadBox'), fileInput = $('#file'), pickBtn = $('#btnPick');
       const statsEl = $('#stats'), curFrEl = $('#curFr'), curIpEl = $('#curIp'), curOpEl = $('#curOp'), curSecEl = $('#curSec');
-      const stage1 = $('#stage1'), stage2 = $('#stage2');
+const stage1 = $('#stage1'), stage2 = $('#stage2');
 const p1Toggle = $('#p1Toggle'), p1Reset = $('#p1Reset'), p1Png = $('#p1Png'), p1Svg = $('#p1Svg');
 const p2Toggle = $('#p2Toggle'), p2Reset = $('#p2Reset'), p2Png = $('#p2Png'), p2Svg = $('#p2Svg');
 
-      const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
+// 新增：进度条元素
+const p1Progress = document.getElementById('p1Progress');
+const p2Progress = document.getElementById('p2Progress');
+
+const modeGroup = $('#modeGroup'), fpsInp = $('#targetFr');
+
       const applyBtn = $('#applyBtn'), downloadBtn = $('#downloadBtn');
 
       /* ========= 状态 ========= */
-      let activeMode = 'scale-keyframes';
-      let anim1 = null, anim2 = null;
-      let originalObj = null, processedObj = null;
+let activeMode = 'scale-keyframes';
+let anim1 = null, anim2 = null;
+let originalObj = null, processedObj = null;
+
+// 新增：是否正在拖动
+let isP1Scrubbing = false;
+let isP2Scrubbing = false;
+
       let fileName = 'lottie.json';
       let hasApplied = false;
 
@@ -1101,18 +1111,57 @@ async function convertEmbeddedPNGsToWebPIfSmaller(lottieObj, quality = 0.8){
         anim.addEventListener('DOMLoaded', () => { try { const svg = anim.renderer?.svgElement; if (svg) svg.style.background = 'transparent'; } catch (_) { } });
         return anim;
       }
-      function refreshPlayers() {
+  function refreshPlayers() {
+  // 源文件预览
+  if (anim1) {
+    anim1.destroy();
+    anim1 = null;
+  }
   if (originalObj) {
-    if (anim1) anim1.destroy();
     anim1 = loadAnim(stage1, originalObj);
-    if (p1Toggle) p1Toggle.textContent = '暂停';
+    if (p1Toggle) setToggleLabel(p1Toggle, true);
+
+    if (p1Progress) {
+      p1Progress.disabled = false;
+      p1Progress.value = 0;
+      // 每一帧更新进度条
+      anim1.addEventListener('enterFrame', () => {
+        if (isP1Scrubbing) return;
+        const total = anim1.totalFrames || 1;
+        const cur = anim1.currentFrame || 0;
+        p1Progress.value = (cur / total).toFixed(3);
+      });
+    }
+  } else if (p1Progress) {
+    p1Progress.disabled = true;
+    p1Progress.value = 0;
+  }
+
+  // 修改后预览
+  if (anim2) {
+    anim2.destroy();
+    anim2 = null;
   }
   if (processedObj) {
-    if (anim2) anim2.destroy();
     anim2 = loadAnim(stage2, processedObj);
-    if (p2Toggle) p2Toggle.textContent = '暂停';
+    if (p2Toggle) setToggleLabel(p2Toggle, true);
+
+    if (p2Progress) {
+      p2Progress.disabled = false;
+      p2Progress.value = 0;
+      anim2.addEventListener('enterFrame', () => {
+        if (isP2Scrubbing) return;
+        const total = anim2.totalFrames || 1;
+        const cur = anim2.currentFrame || 0;
+        p2Progress.value = (cur / total).toFixed(3);
+      });
+    }
+  } else if (p2Progress) {
+    p2Progress.disabled = true;
+    p2Progress.value = 0;
   }
 }
+
 
 
       // 读取 File 为 UTF-8 文本，带降级与明确报错
